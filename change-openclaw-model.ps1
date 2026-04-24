@@ -85,8 +85,24 @@ function Read-Required {
 }
 
 function New-Model {
-    param([string]$Id, [string]$Label, [string]$Modality, [string]$Note = "")
-    return @{ Id=$Id; Label=$Label; Input=$Modality; Note=$Note }
+    param(
+        [string]$Id,
+        [string]$Label,
+        [string]$Modality,
+        [string]$Note = "",
+        [int]$ContextWindow = 0,
+        [int]$MaxTokens = 0,
+        [string]$Source = ""
+    )
+    return @{
+        Id=$Id
+        Label=$Label
+        Input=$Modality
+        Note=$Note
+        ContextWindow=$ContextWindow
+        MaxTokens=$MaxTokens
+        Source=$Source
+    }
 }
 
 $script:Providers = @(
@@ -105,23 +121,23 @@ $script:Providers = @(
 
 $script:ModelMap = @{
     "deepseek" = @(
-        (New-Model "deepseek-v4-pro" "DeepSeek V4 Pro" "文本" "强推理/复杂任务"),
-        (New-Model "deepseek-v4-flash" "DeepSeek V4 Flash" "文本" "高速/低成本"),
+        (New-Model "deepseek-v4-pro" "DeepSeek V4 Pro" "文本" "强推理/复杂任务" 1000000 0 "DeepSeek 官方 Hugging Face 模型卡"),
+        (New-Model "deepseek-v4-flash" "DeepSeek V4 Flash" "文本" "高速/低成本" 1000000 0 "DeepSeek 官方 Hugging Face 模型卡"),
         (New-Model "deepseek-chat" "DeepSeek Chat" "文本" "旧别名，2026-07-24 弃用"),
         (New-Model "deepseek-reasoner" "DeepSeek Reasoner" "文本" "旧别名，2026-07-24 弃用")
     )
     "minimax" = @(
-        (New-Model "MiniMax-M2.7" "MiniMax M2.7" "文本" "默认推荐"),
-        (New-Model "MiniMax-M2.7-highspeed" "MiniMax M2.7 Highspeed" "文本" "高速版"),
-        (New-Model "MiniMax-M2.5" "MiniMax M2.5" "文本" "旧一代高性价比"),
-        (New-Model "MiniMax-M2.5-highspeed" "MiniMax M2.5 Highspeed" "文本" "旧一代高速版")
+        (New-Model "MiniMax-M2.7" "MiniMax M2.7" "文本" "默认推荐" 204800 0 "MiniMax 官方 API Overview"),
+        (New-Model "MiniMax-M2.7-highspeed" "MiniMax M2.7 Highspeed" "文本" "高速版" 204800 0 "MiniMax 官方 API Overview"),
+        (New-Model "MiniMax-M2.5" "MiniMax M2.5" "文本" "旧一代高性价比" 204800 0 "MiniMax 官方 API Overview"),
+        (New-Model "MiniMax-M2.5-highspeed" "MiniMax M2.5 Highspeed" "文本" "旧一代高速版" 204800 0 "MiniMax 官方 API Overview")
     )
     "qwen" = @(
         (New-Model "qwen3.6-max-preview" "Qwen3.6 Max Preview" "文本" "最高推理能力，成本较高"),
-        (New-Model "qwen3.6-plus" "Qwen3.6 Plus" "文本/图片" "1M 上下文，主推"),
-        (New-Model "qwen3.6-flash" "Qwen3.6 Flash" "文本/图片" "1M 上下文，低成本"),
-        (New-Model "qwen3.6-plus-2026-04-02" "Qwen3.6 Plus 快照" "文本/图片" "固定快照"),
-        (New-Model "qwen3.6-flash-2026-04-16" "Qwen3.6 Flash 快照" "文本/图片" "固定快照"),
+        (New-Model "qwen3.6-plus" "Qwen3.6 Plus" "文本/图片" "1M 上下文，主推" 1000000 0 "阿里云官方新闻稿/Model Studio 文档"),
+        (New-Model "qwen3.6-flash" "Qwen3.6 Flash" "文本/图片" "1M 上下文，低成本" 1000000 0 "阿里云 Model Studio 官方模型列表：Qwen-Flash"),
+        (New-Model "qwen3.6-plus-2026-04-02" "Qwen3.6 Plus 快照" "文本/图片" "固定快照" 1000000 0 "阿里云官方新闻稿/Model Studio 文档"),
+        (New-Model "qwen3.6-flash-2026-04-16" "Qwen3.6 Flash 快照" "文本/图片" "固定快照" 1000000 0 "阿里云 Model Studio 官方模型列表：Qwen-Flash"),
         (New-Model "qwen3.6-35b-a3b" "Qwen3.6 35B A3B" "文本/图片" "开源/轻量 MoE"),
         (New-Model "qwen3-coder-plus" "Qwen3 Coder Plus" "文本" "代码模型"),
         (New-Model "qwen3-coder-flash" "Qwen3 Coder Flash" "文本" "低成本代码模型")
@@ -216,7 +232,9 @@ function Select-Model {
         $m = $models[$i]
         $note = if ($m["Note"]) { "，$($m["Note"])" } else { "" }
         $inputLabel = if ($m["Input"]) { "[$($m["Input"])]" } else { "" }
-        Write-Host ("  {0,2}) {1}  {2}  {3}{4}" -f ($i + 1), $m["Label"], $inputLabel, $m["Id"], $note)
+        $ctxLabel = if ($m["ContextWindow"] -gt 0) { " | 上下文: $($m["ContextWindow"])" } else { "" }
+        $outLabel = if ($m["MaxTokens"] -gt 0) { " | 输出: $($m["MaxTokens"])" } else { "" }
+        Write-Host ("  {0,2}) {1}  {2}  {3}{4}{5}{6}" -f ($i + 1), $m["Label"], $inputLabel, $m["Id"], $ctxLabel, $outLabel, $note)
     }
     Write-Host "   0) 手动输入 Model ID"
     Write-Host ""
@@ -233,6 +251,106 @@ function Select-Model {
 
     Write-Warn "无效选择，跳过模型设置"
     return ""
+}
+
+function Get-SelectedModelInfo {
+    param([hashtable]$ProviderInfo, [string]$SelectedModel)
+    if (-not $ProviderInfo -or -not $SelectedModel) { return $null }
+    $models = $script:ModelMap[$ProviderInfo.Name]
+    if (-not $models) { return $null }
+    return ($models | Where-Object { $_["Id"] -eq $SelectedModel } | Select-Object -First 1)
+}
+
+function Normalize-Url {
+    param([string]$Url)
+    if (-not $Url) { return "" }
+    return $Url.Trim().TrimEnd("/")
+}
+
+function Set-JsonProperty {
+    param([object]$Object, [string]$Name, $Value)
+    if ($null -eq $Object) { return }
+    if ($Object.PSObject.Properties[$Name]) {
+        $Object.$Name = $Value
+    } else {
+        $Object | Add-Member -NotePropertyName $Name -NotePropertyValue $Value -Force
+    }
+}
+
+function Convert-ModalityToInput {
+    param([string]$Modality)
+    if ($Modality -like "*图片*") { return ,@("text", "image") }
+    return ,@("text")
+}
+
+function Apply-CustomModelMetadata {
+    param([hashtable]$ProviderInfo, [string]$SelectedModel, [string]$EffectiveBaseUrl)
+    if (-not $ProviderInfo -or $ProviderInfo.Mode -ne "custom" -or -not $SelectedModel) { return }
+
+    $modelInfo = Get-SelectedModelInfo -ProviderInfo $ProviderInfo -SelectedModel $SelectedModel
+    if (-not $modelInfo -or (($modelInfo["ContextWindow"] -le 0) -and ($modelInfo["MaxTokens"] -le 0))) {
+        Write-Info "当前模型没有官方核实的上下文元数据，保留 OpenClaw 默认值"
+        return
+    }
+
+    $configPath = Join-Path $env:USERPROFILE ".openclaw\openclaw.json"
+    if (-not (Test-Path $configPath)) {
+        Write-Warn "未找到 OpenClaw 配置文件，无法写入模型元数据: $configPath"
+        return
+    }
+
+    try {
+        $config = Get-Content -Path $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $targetBase = Normalize-Url $EffectiveBaseUrl
+        $provider = $null
+
+        foreach ($prop in $config.models.providers.PSObject.Properties) {
+            $candidate = $prop.Value
+            if ((Normalize-Url $candidate.baseUrl) -eq $targetBase) {
+                $provider = $candidate
+                break
+            }
+        }
+
+        if (-not $provider) {
+            Write-Warn "未能按 Base URL 找到 custom provider，跳过模型元数据写入"
+            return
+        }
+
+        $targetModel = $null
+        foreach ($modelProp in $provider.models.PSObject.Properties) {
+            if ($modelProp.Value.id -eq $SelectedModel) {
+                $targetModel = $modelProp.Value
+                break
+            }
+        }
+
+        if (-not $targetModel) {
+            Write-Warn "未能在 custom provider 中找到模型 $SelectedModel，跳过模型元数据写入"
+            return
+        }
+
+        if ($modelInfo["ContextWindow"] -gt 0) {
+            Set-JsonProperty -Object $targetModel -Name "contextWindow" -Value ([int]$modelInfo["ContextWindow"])
+        }
+        if ($modelInfo["MaxTokens"] -gt 0) {
+            Set-JsonProperty -Object $targetModel -Name "maxTokens" -Value ([int]$modelInfo["MaxTokens"])
+        }
+        if ($modelInfo["Input"]) {
+            Set-JsonProperty -Object $targetModel -Name "input" -Value (Convert-ModalityToInput $modelInfo["Input"])
+        }
+
+        $json = $config | ConvertTo-Json -Depth 100
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($configPath, $json + [Environment]::NewLine, $utf8NoBom)
+
+        $ctxText = if ($modelInfo["ContextWindow"] -gt 0) { "contextWindow=$($modelInfo["ContextWindow"])" } else { "contextWindow=保留默认" }
+        $outText = if ($modelInfo["MaxTokens"] -gt 0) { "maxTokens=$($modelInfo["MaxTokens"])" } else { "maxTokens=保留默认" }
+        Write-Ok "已写入官方核实模型元数据: $ctxText, $outText"
+        if ($modelInfo["Source"]) { Write-Info "核实来源: $($modelInfo["Source"])" }
+    } catch {
+        Write-Warn "写入模型元数据失败，OpenClaw 主配置已完成: $_"
+    }
 }
 
 function Configure-Provider {
@@ -281,6 +399,10 @@ function Configure-Provider {
     Write-Info "正在配置 OpenClaw..."
     Invoke-OpenClaw -OpenClawArgs $onboardArgs
     Write-Ok "OpenClaw 配置完成"
+
+    if ($ProviderInfo.Mode -eq "custom") {
+        Apply-CustomModelMetadata -ProviderInfo $ProviderInfo -SelectedModel $SelectedModel -EffectiveBaseUrl $base
+    }
 }
 
 Write-Host ""

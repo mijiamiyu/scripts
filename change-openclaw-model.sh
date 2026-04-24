@@ -131,26 +131,26 @@ models_for_provider() {
   case "$1" in
     deepseek)
       printf '%s\n' \
-        "deepseek-v4-pro|DeepSeek V4 Pro|文本|强推理/复杂任务" \
-        "deepseek-v4-flash|DeepSeek V4 Flash|文本|高速/低成本" \
-        "deepseek-chat|DeepSeek Chat|文本|旧别名，2026-07-24 弃用" \
-        "deepseek-reasoner|DeepSeek Reasoner|文本|旧别名，2026-07-24 弃用" ;;
+        "deepseek-v4-pro|DeepSeek V4 Pro|文本|强推理/复杂任务|1000000|0|DeepSeek 官方 Hugging Face 模型卡" \
+        "deepseek-v4-flash|DeepSeek V4 Flash|文本|高速/低成本|1000000|0|DeepSeek 官方 Hugging Face 模型卡" \
+        "deepseek-chat|DeepSeek Chat|文本|旧别名，2026-07-24 弃用|0|0|" \
+        "deepseek-reasoner|DeepSeek Reasoner|文本|旧别名，2026-07-24 弃用|0|0|" ;;
     minimax)
       printf '%s\n' \
-        "MiniMax-M2.7|MiniMax M2.7|文本|默认推荐" \
-        "MiniMax-M2.7-highspeed|MiniMax M2.7 Highspeed|文本|高速版" \
-        "MiniMax-M2.5|MiniMax M2.5|文本|旧一代高性价比" \
-        "MiniMax-M2.5-highspeed|MiniMax M2.5 Highspeed|文本|旧一代高速版" ;;
+        "MiniMax-M2.7|MiniMax M2.7|文本|默认推荐|204800|0|MiniMax 官方 API Overview" \
+        "MiniMax-M2.7-highspeed|MiniMax M2.7 Highspeed|文本|高速版|204800|0|MiniMax 官方 API Overview" \
+        "MiniMax-M2.5|MiniMax M2.5|文本|旧一代高性价比|204800|0|MiniMax 官方 API Overview" \
+        "MiniMax-M2.5-highspeed|MiniMax M2.5 Highspeed|文本|旧一代高速版|204800|0|MiniMax 官方 API Overview" ;;
     qwen)
       printf '%s\n' \
-        "qwen3.6-max-preview|Qwen3.6 Max Preview|文本|最高推理能力，成本较高" \
-        "qwen3.6-plus|Qwen3.6 Plus|文本/图片|1M 上下文，主推" \
-        "qwen3.6-flash|Qwen3.6 Flash|文本/图片|1M 上下文，低成本" \
-        "qwen3.6-plus-2026-04-02|Qwen3.6 Plus 快照|文本/图片|固定快照" \
-        "qwen3.6-flash-2026-04-16|Qwen3.6 Flash 快照|文本/图片|固定快照" \
-        "qwen3.6-35b-a3b|Qwen3.6 35B A3B|文本/图片|开源/轻量 MoE" \
-        "qwen3-coder-plus|Qwen3 Coder Plus|文本|代码模型" \
-        "qwen3-coder-flash|Qwen3 Coder Flash|文本|低成本代码模型" ;;
+        "qwen3.6-max-preview|Qwen3.6 Max Preview|文本|最高推理能力，成本较高|0|0|" \
+        "qwen3.6-plus|Qwen3.6 Plus|文本/图片|1M 上下文，主推|1000000|0|阿里云官方新闻稿/Model Studio 文档" \
+        "qwen3.6-flash|Qwen3.6 Flash|文本/图片|1M 上下文，低成本|1000000|0|阿里云 Model Studio 官方模型列表：Qwen-Flash" \
+        "qwen3.6-plus-2026-04-02|Qwen3.6 Plus 快照|文本/图片|固定快照|1000000|0|阿里云官方新闻稿/Model Studio 文档" \
+        "qwen3.6-flash-2026-04-16|Qwen3.6 Flash 快照|文本/图片|固定快照|1000000|0|阿里云 Model Studio 官方模型列表：Qwen-Flash" \
+        "qwen3.6-35b-a3b|Qwen3.6 35B A3B|文本/图片|开源/轻量 MoE|0|0|" \
+        "qwen3-coder-plus|Qwen3 Coder Plus|文本|代码模型|0|0|" \
+        "qwen3-coder-flash|Qwen3 Coder Flash|文本|低成本代码模型|0|0|" ;;
     volcengine)
       printf '%s\n' \
         "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|编程/前端/Agent" \
@@ -199,6 +199,121 @@ models_for_provider() {
   esac
 }
 
+model_metadata_for_provider() {
+  local provider_name="$1"
+  local model_id="$2"
+  local entry id label input note context max_tokens source
+  while IFS= read -r entry; do
+    IFS='|' read -r id label input note context max_tokens source <<< "$entry"
+    if [[ "$id" == "$model_id" ]]; then
+      printf '%s|%s|%s|%s|%s\n' "${context:-0}" "${max_tokens:-0}" "${input:-}" "${source:-}" "${note:-}"
+      return 0
+    fi
+  done < <(models_for_provider "$provider_name")
+  return 1
+}
+
+apply_custom_model_metadata() {
+  local provider_name="$1"
+  local model_id="$2"
+  local base_url="$3"
+  local metadata context max_tokens input source note
+
+  if ! metadata="$(model_metadata_for_provider "$provider_name" "$model_id")"; then
+    print_info "当前模型没有官方核实的上下文元数据，保留 OpenClaw 默认值"
+    return 0
+  fi
+
+  IFS='|' read -r context max_tokens input source note <<< "$metadata"
+  context="${context:-0}"
+  max_tokens="${max_tokens:-0}"
+  if [[ "$context" == "0" && "$max_tokens" == "0" ]]; then
+    print_info "当前模型没有官方核实的上下文元数据，保留 OpenClaw 默认值"
+    return 0
+  fi
+
+  local config_path="${HOME}/.openclaw/openclaw.json"
+  if [[ ! -f "$config_path" ]]; then
+    print_warn "未找到 OpenClaw 配置文件，无法写入模型元数据: $config_path"
+    return 0
+  fi
+
+  local rc=0
+  CONFIG_PATH="$config_path" \
+  TARGET_BASE_URL="$base_url" \
+  TARGET_MODEL_ID="$model_id" \
+  CONTEXT_WINDOW="$context" \
+  MAX_TOKENS="$max_tokens" \
+  INPUT_LABEL="$input" \
+  node <<'NODE' || rc=$?
+const fs = require('fs');
+
+const configPath = process.env.CONFIG_PATH;
+const targetBaseUrl = normalizeUrl(process.env.TARGET_BASE_URL || '');
+const targetModelId = process.env.TARGET_MODEL_ID || '';
+const contextWindow = Number(process.env.CONTEXT_WINDOW || 0);
+const maxTokens = Number(process.env.MAX_TOKENS || 0);
+const inputLabel = process.env.INPUT_LABEL || '';
+
+function normalizeUrl(value) {
+  return String(value || '').trim().replace(/\/+$/, '');
+}
+
+function inputFromLabel(label) {
+  return label.includes('图片') ? ['text', 'image'] : ['text'];
+}
+
+const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+const providers = config?.models?.providers || {};
+let provider = null;
+for (const candidate of Object.values(providers)) {
+  if (normalizeUrl(candidate?.baseUrl) === targetBaseUrl) {
+    provider = candidate;
+    break;
+  }
+}
+
+if (!provider) {
+  console.error('provider_not_found');
+  process.exit(2);
+}
+
+const models = provider.models || {};
+let targetModel = null;
+for (const candidate of Object.values(models)) {
+  if (candidate?.id === targetModelId) {
+    targetModel = candidate;
+    break;
+  }
+}
+
+if (!targetModel) {
+  console.error('model_not_found');
+  process.exit(3);
+}
+
+if (contextWindow > 0) targetModel.contextWindow = contextWindow;
+if (maxTokens > 0) targetModel.maxTokens = maxTokens;
+if (inputLabel) targetModel.input = inputFromLabel(inputLabel);
+
+fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
+NODE
+  if [[ "$rc" -eq 0 ]]; then
+    local ctx_text="contextWindow=保留默认"
+    local out_text="maxTokens=保留默认"
+    [[ "$context" != "0" ]] && ctx_text="contextWindow=$context"
+    [[ "$max_tokens" != "0" ]] && out_text="maxTokens=$max_tokens"
+    print_ok "已写入官方核实模型元数据: $ctx_text, $out_text"
+    [[ -n "$source" ]] && print_info "核实来源: $source"
+  elif [[ "$rc" -eq 2 ]]; then
+    print_warn "未能按 Base URL 找到 custom provider，跳过模型元数据写入"
+  elif [[ "$rc" -eq 3 ]]; then
+    print_warn "未能在 custom provider 中找到模型 $model_id，跳过模型元数据写入"
+  else
+    print_warn "写入模型元数据失败，OpenClaw 主配置已完成"
+  fi
+}
+
 select_model() {
   local provider_name="${1:-}"
   if [[ -n "$MODEL" ]]; then
@@ -212,11 +327,15 @@ select_model() {
   fi
 
   printf '\n  请选择默认模型:\n\n' >&2
-  local i entry id label input note
+  local i entry id label input note context max_tokens source ctx_label out_label
   for i in "${!models[@]}"; do
     entry="${models[$i]}"
-    IFS='|' read -r id label input note <<< "$entry"
-    printf '  %2d) %s  [%s]  %s，%s\n' "$((i + 1))" "$label" "$input" "$id" "$note" >&2
+    IFS='|' read -r id label input note context max_tokens source <<< "$entry"
+    ctx_label=""
+    out_label=""
+    [[ "${context:-0}" != "0" ]] && ctx_label=" | 上下文: $context"
+    [[ "${max_tokens:-0}" != "0" ]] && out_label=" | 输出: $max_tokens"
+    printf '  %2d) %s  [%s]  %s%s%s，%s\n' "$((i + 1))" "$label" "$input" "$id" "$ctx_label" "$out_label" "$note" >&2
   done
   printf '   0) 手动输入 Model ID\n\n' >&2
   printf '  请选择 [0-%d]: ' "${#models[@]}" >&2
@@ -327,6 +446,9 @@ if [[ -n "$provider_idx" ]]; then
   print_info "正在配置 OpenClaw..."
   openclaw "${onboard_args[@]}"
   print_ok "OpenClaw 配置完成"
+  if [[ "${provider_modes[$provider_idx]}" == "custom" ]]; then
+    apply_custom_model_metadata "$provider_name" "$selected_model" "$base"
+  fi
 fi
 
 if [[ -n "$selected_model" && ( -z "$provider_idx" || "${provider_modes[$provider_idx]}" != "custom" ) ]]; then
