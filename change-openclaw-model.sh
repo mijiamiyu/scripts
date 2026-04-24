@@ -67,7 +67,6 @@ provider_base_urls=("https://api.deepseek.com" "https://api.minimax.io/v1" "http
 provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://console.bce.baidu.com/qianfan/" "" "https://platform.openai.com/" "https://console.anthropic.com/" "")
 provider_auth=("" "" "" "" "" "" "" "xiaomi-api-key" "openai-api-key" "apiKey" "")
 provider_keyflag=("" "" "" "" "" "" "" "--xiaomi-api-key" "--openai-api-key" "--anthropic-api-key" "")
-LAST_CUSTOM_BASE_URL=""
 
 read_required() {
   local prompt="$1"
@@ -243,50 +242,6 @@ gateway_is_running() {
   printf '%s\n' "$output" | grep -q '"ok"[[:space:]]*:[[:space:]]*true'
 }
 
-resolve_registered_model_id() {
-  local model_id="$1"
-  local preferred_base_url="${2:-}"
-  if [[ -z "$model_id" || "$model_id" == */* ]]; then
-    printf '%s\n' "$model_id"
-    return
-  fi
-  if ! command -v node >/dev/null 2>&1; then
-    printf '%s\n' "$model_id"
-    return
-  fi
-  MODEL_ID="$model_id" PREFERRED_BASE_URL="$preferred_base_url" node <<'NODE'
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
-const modelId = process.env.MODEL_ID || "";
-const preferred = (process.env.PREFERRED_BASE_URL || "").replace(/\/+$/, "");
-const configPath = path.join(os.homedir(), ".openclaw", "openclaw.json");
-function done(value) {
-  process.stdout.write(value || modelId);
-}
-try {
-  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-  const providers = (config.models && config.models.providers) || {};
-  const matches = [];
-  for (const [providerId, provider] of Object.entries(providers)) {
-    for (const model of provider.models || []) {
-      if (model && model.id === modelId) {
-        matches.push({
-          fullId: `${providerId}/${modelId}`,
-          baseUrl: String(provider.baseUrl || "").replace(/\/+$/, "")
-        });
-      }
-    }
-  }
-  if (matches.length === 0) done(modelId);
-  else if (preferred) done((matches.find((item) => item.baseUrl === preferred) || matches[0]).fullId);
-  else done(matches[0].fullId);
-} catch {
-  done(modelId);
-}
-NODE
-}
-
 printf '\n  OpenClaw 中文模型配置与切换脚本\n'
 printf '  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
 
@@ -351,7 +306,6 @@ if [[ -n "$provider_idx" ]]; then
     if [[ -z "$base" ]]; then
       base="$(read_required '  请输入 Base URL: ')"
     fi
-    LAST_CUSTOM_BASE_URL="$base"
     print_info "Base URL: $base"
     onboard_args=(
       onboard --non-interactive
@@ -375,14 +329,13 @@ if [[ -n "$provider_idx" ]]; then
   print_ok "OpenClaw 配置完成"
 fi
 
-if [[ -n "$selected_model" ]]; then
-  model_to_set="$(resolve_registered_model_id "$selected_model" "$LAST_CUSTOM_BASE_URL")"
-  if [[ "$model_to_set" != "$selected_model" ]]; then
-    print_info "已解析为 OpenClaw 注册模型: $model_to_set"
-  fi
-  print_info "正在设置默认模型: $model_to_set"
-  openclaw models set "$model_to_set"
+if [[ -n "$selected_model" && ( -z "$provider_idx" || "${provider_modes[$provider_idx]}" != "custom" ) ]]; then
+  print_info "正在设置默认模型: $selected_model"
+  openclaw models set "$selected_model"
   print_ok "默认模型已设置"
+elif [[ -n "$selected_model" && -n "$provider_idx" && "${provider_modes[$provider_idx]}" == "custom" ]]; then
+  print_ok "Custom 模型已由 openclaw onboard 写入: $selected_model"
+  print_info "跳过 openclaw models set，避免裸模型名被解析到 openai/*"
 fi
 
 printf '\n'

@@ -36,7 +36,6 @@ if ($MyInvocation.MyCommand.Path) {
 $OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
-$script:LastCustomBaseUrl = ""
 
 function Write-Info { param($Msg) Write-Host "  [INFO] " -ForegroundColor Blue -NoNewline; Write-Host $Msg }
 function Write-Ok   { param($Msg) Write-Host "  [OK]   " -ForegroundColor Green -NoNewline; Write-Host $Msg }
@@ -62,59 +61,6 @@ function Invoke-OpenClaw {
         throw "openclaw $($OpenClawArgs -join ' ') 执行失败，退出码: $exitCode"
     }
     return $exitCode
-}
-
-function Get-OpenClawConfigPath {
-    return (Join-Path $env:USERPROFILE ".openclaw\openclaw.json")
-}
-
-function Normalize-Url {
-    param([string]$Url)
-    if (-not $Url) { return "" }
-    return $Url.Trim().TrimEnd("/")
-}
-
-function Resolve-RegisteredModelId {
-    param([string]$ModelId, [string]$PreferredBaseUrl = "")
-    if (-not $ModelId) { return $ModelId }
-    if ($ModelId -like "*/*") { return $ModelId }
-
-    $configPath = Get-OpenClawConfigPath
-    if (-not (Test-Path $configPath)) { return $ModelId }
-
-    try {
-        $config = Get-Content -Path $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        $providers = $config.models.providers
-        if (-not $providers) { return $ModelId }
-
-        $matches = @()
-        foreach ($providerProp in $providers.PSObject.Properties) {
-            $providerId = $providerProp.Name
-            $provider = $providerProp.Value
-            if (-not $provider.models) { continue }
-            foreach ($model in @($provider.models)) {
-                if ($model.id -eq $ModelId) {
-                    $matches += [pscustomobject]@{
-                        FullId = "$providerId/$ModelId"
-                        BaseUrl = $provider.baseUrl
-                    }
-                }
-            }
-        }
-
-        if ($matches.Count -eq 0) { return $ModelId }
-
-        $preferred = Normalize-Url $PreferredBaseUrl
-        if ($preferred) {
-            $byBaseUrl = $matches | Where-Object { (Normalize-Url $_.BaseUrl) -eq $preferred } | Select-Object -First 1
-            if ($byBaseUrl) { return $byBaseUrl.FullId }
-        }
-
-        return ($matches | Select-Object -First 1).FullId
-    } catch {
-        Write-Warn "读取 OpenClaw 配置失败，继续使用原始模型 ID: $ModelId"
-        return $ModelId
-    }
 }
 
 function Test-GatewayRunning {
@@ -312,7 +258,6 @@ function Configure-Provider {
         )
     } else {
         $base = if ($BaseUrl) { $BaseUrl.Trim() } elseif ($ProviderInfo.BaseUrl) { $ProviderInfo.BaseUrl } else { Read-Required -Prompt "  请输入 Base URL" }
-        $script:LastCustomBaseUrl = $base
         $compat = if ($ProviderInfo.Compatibility) { $ProviderInfo.Compatibility } else { "openai" }
         $onboardArgs = @(
             "onboard", "--non-interactive",
@@ -384,14 +329,13 @@ if ($providerInfo) {
     Configure-Provider -ProviderInfo $providerInfo -SelectedModel $selectedModel
 }
 
-if ($selectedModel) {
-    $modelToSet = Resolve-RegisteredModelId -ModelId $selectedModel -PreferredBaseUrl $script:LastCustomBaseUrl
-    if ($modelToSet -ne $selectedModel) {
-        Write-Info "已解析为 OpenClaw 注册模型: $modelToSet"
-    }
-    Write-Info "正在设置默认模型: $modelToSet"
-    Invoke-OpenClaw -OpenClawArgs @("models", "set", $modelToSet)
+if ($selectedModel -and (-not $providerInfo -or $providerInfo.Mode -ne "custom")) {
+    Write-Info "正在设置默认模型: $selectedModel"
+    Invoke-OpenClaw -OpenClawArgs @("models", "set", $selectedModel)
     Write-Ok "默认模型已设置"
+} elseif ($selectedModel -and $providerInfo.Mode -eq "custom") {
+    Write-Ok "Custom 模型已由 openclaw onboard 写入: $selectedModel"
+    Write-Info "跳过 openclaw models set，避免裸模型名被解析到 openai/*"
 }
 
 Write-Host ""
