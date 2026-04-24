@@ -1,32 +1,51 @@
 # OpenClaw Scripts
 
-Small helper scripts for OpenClaw.
+OpenClaw 安装与模型切换脚本。
 
-## Set Model
+## 安装 OpenClaw
 
 Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/openclaw-set-model.ps1 | iex
+irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/install-openclaw.ps1 | iex
 ```
 
-Set a model directly:
+macOS / Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/install-openclaw.sh | bash
+```
+
+安装脚本会安装 OpenClaw，并在最后调用中文模型配置流程。
+
+## 更换模型
+
+Windows PowerShell:
 
 ```powershell
-$env:OPENCLAW_MODEL='xiaomi/mimo-v2-flash'
-irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/openclaw-set-model.ps1 | iex
+irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.ps1 | iex
 ```
 
-macOS/Linux:
+macOS / Linux:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/openclaw-set-model.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.sh | bash
 ```
 
-Set a model directly:
+直接指定模型:
+
+```powershell
+$env:OPENCLAW_PROVIDER='qwen'
+$env:OPENCLAW_API_KEY='sk-xxx'
+$env:OPENCLAW_MODEL='qwen3.6-flash'
+irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.ps1 | iex
+```
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/openclaw-set-model.sh | bash -s -- --model xiaomi/mimo-v2-flash
+OPENCLAW_PROVIDER=qwen OPENCLAW_API_KEY=sk-xxx OPENCLAW_MODEL=qwen3.6-flash \
+curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.sh | bash
 ```
 
-The scripts only change OpenClaw model settings. If the gateway is already running, they restart it after the model is updated. If the gateway is not running, they do not start it.
+## 说明
+
+脚本菜单只标注 `文本` 或 `文本/图片`，不额外标注其它输入能力。DeepSeek、MiniMax、Qwen、火山方舟、智谱、Kimi、千帆默认按 OpenAI 兼容 custom 接入；小米、OpenAI、Anthropic 使用 OpenClaw 内置 provider。
