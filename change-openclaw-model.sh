@@ -145,9 +145,9 @@ models_for_provider() {
       printf '%s\n' \
         "qwen3.6-max-preview|Qwen3.6 Max Preview|文本|最高推理能力，成本较高|0|0|" \
         "qwen3.6-plus|Qwen3.6 Plus|文本/图片|1M 上下文，主推|1000000|0|阿里云官方新闻稿/Model Studio 文档" \
-        "qwen3.6-flash|Qwen3.6 Flash|文本/图片|1M 上下文，低成本|1000000|0|阿里云 Model Studio 官方模型列表：Qwen-Flash" \
-        "qwen3.6-plus-2026-04-02|Qwen3.6 Plus 快照|文本/图片|固定快照|1000000|0|阿里云官方新闻稿/Model Studio 文档" \
-        "qwen3.6-flash-2026-04-16|Qwen3.6 Flash 快照|文本/图片|固定快照|1000000|0|阿里云 Model Studio 官方模型列表：Qwen-Flash" \
+        "qwen3.6-flash|Qwen3.6 Flash|文本/图片|1M 上下文，低成本|0|0|" \
+        "qwen3.6-plus-2026-04-02|Qwen3.6 Plus 快照|文本/图片|固定快照|0|0|" \
+        "qwen3.6-flash-2026-04-16|Qwen3.6 Flash 快照|文本/图片|固定快照|0|0|" \
         "qwen3.6-35b-a3b|Qwen3.6 35B A3B|文本/图片|开源/轻量 MoE|0|0|" \
         "qwen3-coder-plus|Qwen3 Coder Plus|文本|代码模型|0|0|" \
         "qwen3-coder-flash|Qwen3 Coder Flash|文本|低成本代码模型|0|0|" ;;
