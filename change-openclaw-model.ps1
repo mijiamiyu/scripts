@@ -85,8 +85,8 @@ function Read-Required {
 }
 
 function New-Model {
-    param([string]$Id, [string]$Label, [string]$Input, [string]$Note = "")
-    return @{ Id=$Id; Label=$Label; Input=$Input; Note=$Note }
+    param([string]$Id, [string]$Label, [string]$Modality, [string]$Note = "")
+    return @{ Id=$Id; Label=$Label; Input=$Modality; Note=$Note }
 }
 
 $script:Providers = @(
@@ -212,8 +212,9 @@ function Select-Model {
     Write-Host ""
     for ($i = 0; $i -lt $models.Count; $i++) {
         $m = $models[$i]
-        $note = if ($m.Note) { "，$($m.Note)" } else { "" }
-        Write-Host ("  {0,2}) {1}  [{2}]  {3}{4}" -f ($i + 1), $m.Label, $m.Input, $m.Id, $note)
+        $note = if ($m["Note"]) { "，$($m["Note"])" } else { "" }
+        $inputLabel = if ($m["Input"]) { "[$($m["Input"])]" } else { "" }
+        Write-Host ("  {0,2}) {1}  {2}  {3}{4}" -f ($i + 1), $m["Label"], $inputLabel, $m["Id"], $note)
     }
     Write-Host "   0) 手动输入 Model ID"
     Write-Host ""
