@@ -133,14 +133,12 @@ $script:ModelMap = @{
         (New-Model "MiniMax-M2.5-highspeed" "MiniMax M2.5 Highspeed" "文本" "旧一代高速版" 204800 0 "MiniMax 官方 API Overview")
     )
     "qwen" = @(
-        (New-Model "qwen3.6-max-preview" "Qwen3.6 Max Preview" "文本" "最高推理能力，成本较高"),
         (New-Model "qwen3.6-plus" "Qwen3.6 Plus" "文本/图片" "1M 上下文，主推" 1000000 0 "阿里云官方新闻稿/Model Studio 文档"),
-        (New-Model "qwen3.6-flash" "Qwen3.6 Flash" "文本/图片" "1M 上下文，低成本"),
-        (New-Model "qwen3.6-plus-2026-04-02" "Qwen3.6 Plus 快照" "文本/图片" "固定快照"),
-        (New-Model "qwen3.6-flash-2026-04-16" "Qwen3.6 Flash 快照" "文本/图片" "固定快照"),
-        (New-Model "qwen3.6-35b-a3b" "Qwen3.6 35B A3B" "文本/图片" "开源/轻量 MoE"),
-        (New-Model "qwen3-coder-plus" "Qwen3 Coder Plus" "文本" "代码模型"),
-        (New-Model "qwen3-coder-flash" "Qwen3 Coder Flash" "文本" "低成本代码模型")
+        (New-Model "qwen3.6-flash" "Qwen3.6 Flash" "文本/图片" "1M 上下文，低成本" 1000000 0 "用户确认，待阿里云精确 Model ID 文档同步"),
+        (New-Model "qwen3.6-max-preview" "Qwen3.6 Max Preview" "文本" "256K 上下文，最高推理能力" 262144 0 "按 Qwen3 Max 系列官方上下文配置"),
+        (New-Model "qwen3-max" "Qwen3 Max" "文本/图片" "256K 上下文，稳定版" 262144 0 "阿里云 Model Studio 官方模型列表"),
+        (New-Model "qwen3.5-plus" "Qwen3.5 Plus" "文本/图片" "1M 上下文" 1000000 0 "阿里云 Model Studio 官方模型列表"),
+        (New-Model "qwen3.5-flash" "Qwen3.5 Flash" "文本/图片" "1M 上下文" 1000000 0 "阿里云 Model Studio 官方模型列表")
     )
     "volcengine" = @(
         (New-Model "doubao-seed-2.0-code" "Doubao Seed 2.0 Code" "文本/图片" "编程/前端/Agent"),
