@@ -36,6 +36,7 @@ if ($MyInvocation.MyCommand.Path) {
 $OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
+$script:LastCustomBaseUrl = ""
 
 function Write-Info { param($Msg) Write-Host "  [INFO] " -ForegroundColor Blue -NoNewline; Write-Host $Msg }
 function Write-Ok   { param($Msg) Write-Host "  [OK]   " -ForegroundColor Green -NoNewline; Write-Host $Msg }
@@ -61,6 +62,59 @@ function Invoke-OpenClaw {
         throw "openclaw $($OpenClawArgs -join ' ') 执行失败，退出码: $exitCode"
     }
     return $exitCode
+}
+
+function Get-OpenClawConfigPath {
+    return (Join-Path $env:USERPROFILE ".openclaw\openclaw.json")
+}
+
+function Normalize-Url {
+    param([string]$Url)
+    if (-not $Url) { return "" }
+    return $Url.Trim().TrimEnd("/")
+}
+
+function Resolve-RegisteredModelId {
+    param([string]$ModelId, [string]$PreferredBaseUrl = "")
+    if (-not $ModelId) { return $ModelId }
+    if ($ModelId -like "*/*") { return $ModelId }
+
+    $configPath = Get-OpenClawConfigPath
+    if (-not (Test-Path $configPath)) { return $ModelId }
+
+    try {
+        $config = Get-Content -Path $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $providers = $config.models.providers
+        if (-not $providers) { return $ModelId }
+
+        $matches = @()
+        foreach ($providerProp in $providers.PSObject.Properties) {
+            $providerId = $providerProp.Name
+            $provider = $providerProp.Value
+            if (-not $provider.models) { continue }
+            foreach ($model in @($provider.models)) {
+                if ($model.id -eq $ModelId) {
+                    $matches += [pscustomobject]@{
+                        FullId = "$providerId/$ModelId"
+                        BaseUrl = $provider.baseUrl
+                    }
+                }
+            }
+        }
+
+        if ($matches.Count -eq 0) { return $ModelId }
+
+        $preferred = Normalize-Url $PreferredBaseUrl
+        if ($preferred) {
+            $byBaseUrl = $matches | Where-Object { (Normalize-Url $_.BaseUrl) -eq $preferred } | Select-Object -First 1
+            if ($byBaseUrl) { return $byBaseUrl.FullId }
+        }
+
+        return ($matches | Select-Object -First 1).FullId
+    } catch {
+        Write-Warn "读取 OpenClaw 配置失败，继续使用原始模型 ID: $ModelId"
+        return $ModelId
+    }
 }
 
 function Test-GatewayRunning {
@@ -90,17 +144,17 @@ function New-Model {
 }
 
 $script:Providers = @(
-    @{ Key="1";  Name="deepseek";  Label="DeepSeek";        Mode="custom"; BaseUrl="https://api.deepseek.com"; Compatibility="openai" },
-    @{ Key="2";  Name="minimax";   Label="MiniMax";         Mode="custom"; BaseUrl="https://api.minimax.io/v1"; Compatibility="openai" },
-    @{ Key="3";  Name="qwen";      Label="阿里百炼 / Qwen";  Mode="custom"; BaseUrl="https://dashscope.aliyuncs.com/compatible-mode/v1"; Compatibility="openai" },
-    @{ Key="4";  Name="volcengine";Label="火山方舟 / Doubao";Mode="custom"; BaseUrl="https://ark.cn-beijing.volces.com/api/coding/v3"; Compatibility="openai" },
-    @{ Key="5";  Name="zai";       Label="智谱 / BigModel";  Mode="custom"; BaseUrl="https://open.bigmodel.cn/api/paas/v4"; Compatibility="openai" },
-    @{ Key="6";  Name="moonshot";  Label="Moonshot / Kimi"; Mode="custom"; BaseUrl="https://api.moonshot.ai/v1"; Compatibility="openai" },
-    @{ Key="7";  Name="qianfan";   Label="百度千帆";         Mode="custom"; BaseUrl="https://qianfan.baidubce.com/v2"; Compatibility="openai" },
-    @{ Key="8";  Name="xiaomi";    Label="小米 MiMo";        Mode="builtin"; AuthChoice="xiaomi-api-key"; KeyFlag="--xiaomi-api-key" },
-    @{ Key="9";  Name="openai";    Label="OpenAI";          Mode="builtin"; AuthChoice="openai-api-key"; KeyFlag="--openai-api-key" },
-    @{ Key="10"; Name="anthropic"; Label="Anthropic";       Mode="builtin"; AuthChoice="apiKey"; KeyFlag="--anthropic-api-key" },
-    @{ Key="11"; Name="custom";    Label="自定义兼容接口";   Mode="custom"; BaseUrl=""; Compatibility="openai" }
+    @{ Key="1";  Name="deepseek";  Label="DeepSeek";        Mode="custom"; BaseUrl="https://api.deepseek.com"; Compatibility="openai"; Portal="https://platform.deepseek.com/" },
+    @{ Key="2";  Name="minimax";   Label="MiniMax";         Mode="custom"; BaseUrl="https://api.minimax.io/v1"; Compatibility="openai"; Portal="https://platform.minimaxi.com/subscribe/token-plan" },
+    @{ Key="3";  Name="qwen";      Label="阿里百炼 / Qwen";  Mode="custom"; BaseUrl="https://dashscope.aliyuncs.com/compatible-mode/v1"; Compatibility="openai"; Portal="https://bailian.console.aliyun.com/" },
+    @{ Key="4";  Name="volcengine";Label="火山方舟 / Doubao";Mode="custom"; BaseUrl="https://ark.cn-beijing.volces.com/api/coding/v3"; Compatibility="openai"; Portal="https://console.volcengine.com/ark/" },
+    @{ Key="5";  Name="zai";       Label="智谱 / BigModel";  Mode="custom"; BaseUrl="https://open.bigmodel.cn/api/paas/v4"; Compatibility="openai"; Portal="https://open.bigmodel.cn/" },
+    @{ Key="6";  Name="moonshot";  Label="Moonshot / Kimi"; Mode="custom"; BaseUrl="https://api.moonshot.ai/v1"; Compatibility="openai"; Portal="https://platform.moonshot.cn/" },
+    @{ Key="7";  Name="qianfan";   Label="百度千帆";         Mode="custom"; BaseUrl="https://qianfan.baidubce.com/v2"; Compatibility="openai"; Portal="https://console.bce.baidu.com/qianfan/" },
+    @{ Key="8";  Name="xiaomi";    Label="小米 MiMo";        Mode="builtin"; AuthChoice="xiaomi-api-key"; KeyFlag="--xiaomi-api-key"; Portal="" },
+    @{ Key="9";  Name="openai";    Label="OpenAI";          Mode="builtin"; AuthChoice="openai-api-key"; KeyFlag="--openai-api-key"; Portal="https://platform.openai.com/" },
+    @{ Key="10"; Name="anthropic"; Label="Anthropic";       Mode="builtin"; AuthChoice="apiKey"; KeyFlag="--anthropic-api-key"; Portal="https://console.anthropic.com/" },
+    @{ Key="11"; Name="custom";    Label="自定义兼容接口";   Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
 )
 
 $script:ModelMap = @{
@@ -184,7 +238,9 @@ function Select-Provider {
     Write-Host "  请选择 AI 厂商:" -ForegroundColor Cyan
     Write-Host ""
     foreach ($p in $script:Providers) {
-        Write-Host ("  {0,2}) {1,-10} - {2}" -f $p.Key, $p.Name, $p.Label)
+        $baseText = if ($p.BaseUrl) { " | API: $($p.BaseUrl)" } else { "" }
+        $portalText = if ($p.Portal) { " | 官网: $($p.Portal)" } else { "" }
+        Write-Host ("  {0,2}) {1,-10} - {2}{3}{4}" -f $p.Key, $p.Name, $p.Label, $baseText, $portalText)
     }
     Write-Host "   0) 仅切换模型 / 跳过厂商配置"
     Write-Host ""
@@ -256,6 +312,7 @@ function Configure-Provider {
         )
     } else {
         $base = if ($BaseUrl) { $BaseUrl.Trim() } elseif ($ProviderInfo.BaseUrl) { $ProviderInfo.BaseUrl } else { Read-Required -Prompt "  请输入 Base URL" }
+        $script:LastCustomBaseUrl = $base
         $compat = if ($ProviderInfo.Compatibility) { $ProviderInfo.Compatibility } else { "openai" }
         $onboardArgs = @(
             "onboard", "--non-interactive",
@@ -328,8 +385,12 @@ if ($providerInfo) {
 }
 
 if ($selectedModel) {
-    Write-Info "正在设置默认模型: $selectedModel"
-    Invoke-OpenClaw -OpenClawArgs @("models", "set", $selectedModel)
+    $modelToSet = Resolve-RegisteredModelId -ModelId $selectedModel -PreferredBaseUrl $script:LastCustomBaseUrl
+    if ($modelToSet -ne $selectedModel) {
+        Write-Info "已解析为 OpenClaw 注册模型: $modelToSet"
+    }
+    Write-Info "正在设置默认模型: $modelToSet"
+    Invoke-OpenClaw -OpenClawArgs @("models", "set", $modelToSet)
     Write-Ok "默认模型已设置"
 }
 
