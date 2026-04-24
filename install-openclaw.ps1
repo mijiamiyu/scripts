@@ -1,21 +1,11 @@
-<#
-.SYNOPSIS
-  OpenClaw 一键安装脚本 (Windows)
-.DESCRIPTION
-  自动检测并安装 Node.js v22+、Git，然后安装并配置 OpenClaw。
-.PARAMETER Version
-  指定安装的 OpenClaw 版本号（例如 1.2.3）。不指定则安装最新版。
-.NOTES
-  用法:
-    powershell -ExecutionPolicy Bypass -File install-openclaw.ps1
-    powershell -ExecutionPolicy Bypass -File install-openclaw.ps1 -Version 1.2.3
-  在线一键安装（推荐，直接在当前窗口执行，安装后立即可用）:
-    irm https://你的域名/install-openclaw.ps1 | iex
-  指定版本（通过环境变量）:
-    $env:OPENCLAW_VERSION='1.2.3'; irm https://你的域名/install-openclaw.ps1 | iex
-  如果中文乱码，改用:
-    & {$w=New-Object Net.WebClient;$w.Encoding=[Text.Encoding]::UTF8;iex $w.DownloadString('https://你的域名/install-openclaw.ps1')}
-#>
+# OpenClaw 一键安装脚本 (Windows)
+# 用法:
+#   powershell -ExecutionPolicy Bypass -File install-openclaw.ps1
+#   powershell -ExecutionPolicy Bypass -File install-openclaw.ps1 -Version 1.2.3
+# 在线一键安装:
+#   irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/install-openclaw.ps1 | iex
+# 指定版本:
+#   $env:OPENCLAW_VERSION='1.2.3'; irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/install-openclaw.ps1 | iex
 param(
     [string]$Version = ""
 )

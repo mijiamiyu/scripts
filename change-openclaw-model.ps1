@@ -1,21 +1,12 @@
-﻿<#
-.SYNOPSIS
-  OpenClaw 中文模型配置与切换脚本 (Windows)
-
-.DESCRIPTION
-  选择厂商、输入 API Key、选择模型，然后调用 openclaw onboard / models set。
-  国内新模型默认使用 OpenAI 兼容 custom 接入，避免 OpenClaw 内置 provider 目录滞后。
-
-.NOTES
-  在线使用:
-    irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.ps1 | iex
-
-  直接设置:
-    $env:OPENCLAW_PROVIDER='qwen'
-    $env:OPENCLAW_API_KEY='sk-xxx'
-    $env:OPENCLAW_MODEL='qwen3.6-flash'
-    irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.ps1 | iex
-#>
+# OpenClaw 中文模型配置与切换脚本 (Windows)
+# 在线使用:
+#   irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.ps1 | iex
+#
+# 直接设置:
+#   $env:OPENCLAW_PROVIDER='qwen'
+#   $env:OPENCLAW_API_KEY='sk-xxx'
+#   $env:OPENCLAW_MODEL='qwen3.6-flash'
+#   irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.ps1 | iex
 
 param(
     [string]$Provider = $env:OPENCLAW_PROVIDER,
