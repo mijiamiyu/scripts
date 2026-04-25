@@ -9,6 +9,7 @@ PROVIDER="${OPENCLAW_PROVIDER:-}"
 API_KEY="${OPENCLAW_API_KEY:-}"
 MODEL="${OPENCLAW_MODEL:-}"
 BASE_URL="${OPENCLAW_BASE_URL:-}"
+CONTEXT_WINDOW="${OPENCLAW_CONTEXT_WINDOW:-}"
 LIST=0
 ALL=0
 STATUS=0
@@ -34,6 +35,7 @@ OpenClaw 中文模型配置与切换脚本
   --api-key <key>         API Key
   --model <id>            直接指定 Model ID
   --base-url <url>        自定义 Base URL
+  --context-window <n>    自定义上下文窗口，支持 1M/256K/1000000
   --list                  列出模型
   --all                   配合 --list 显示完整模型目录
   --status                显示当前模型
@@ -49,6 +51,7 @@ while [[ $# -gt 0 ]]; do
     --api-key) API_KEY="${2:-}"; shift 2 ;;
     -m|--model) MODEL="${2:-}"; shift 2 ;;
     --base-url) BASE_URL="${2:-}"; shift 2 ;;
+    --context-window) CONTEXT_WINDOW="${2:-}"; shift 2 ;;
     --list) LIST=1; shift ;;
     --all) ALL=1; shift ;;
     --status) STATUS=1; shift ;;
@@ -211,6 +214,56 @@ model_metadata_for_provider() {
   return 1
 }
 
+parse_token_size() {
+  local raw="${1:-}"
+  local normalized
+  normalized="$(printf '%s' "$raw" | tr -d ',' | tr -d '[:space:]')"
+  if [[ -z "$normalized" ]]; then
+    printf '0\n'
+    return 0
+  fi
+  if [[ "$normalized" =~ ^([0-9]+)([kKmM]?)$ ]]; then
+    local num="${BASH_REMATCH[1]}"
+    local unit="${BASH_REMATCH[2]}"
+    case "$unit" in
+      k|K) printf '%s\n' "$((num * 1000))" ;;
+      m|M) printf '%s\n' "$((num * 1000000))" ;;
+      *) printf '%s\n' "$num" ;;
+    esac
+    return 0
+  fi
+  return 1
+}
+
+read_optional_token_size() {
+  local prompt="$1"
+  local value="${2:-}"
+  local parsed
+  while true; do
+    if [[ -n "$value" ]]; then
+      if parsed="$(parse_token_size "$value")"; then
+        printf '%s\n' "$parsed"
+        return 0
+      fi
+      print_warn "无法识别 token 数量: $value。示例: 1M、256K、1000000、262144" >&2
+      printf '0\n'
+      return 0
+    fi
+    printf '%s' "$prompt" >&2
+    read -r value
+    if [[ -z "$value" ]]; then
+      printf '0\n'
+      return 0
+    fi
+    if parsed="$(parse_token_size "$value")"; then
+      printf '%s\n' "$parsed"
+      return 0
+    fi
+    print_warn "无法识别 token 数量: $value。示例: 1M、256K、1000000、262144" >&2
+    value=""
+  done
+}
+
 apply_custom_model_metadata() {
   local provider_name="$1"
   local model_id="$2"
@@ -218,15 +271,29 @@ apply_custom_model_metadata() {
   local metadata context max_tokens input source note
 
   if ! metadata="$(model_metadata_for_provider "$provider_name" "$model_id")"; then
-    print_info "当前模型没有官方核实的上下文元数据，保留 OpenClaw 默认值"
-    return 0
+    metadata="0|0|文本||"
   fi
 
   IFS='|' read -r context max_tokens input source note <<< "$metadata"
   context="${context:-0}"
   max_tokens="${max_tokens:-0}"
+
+  if [[ -n "$CONTEXT_WINDOW" ]]; then
+    context="$(read_optional_token_size "" "$CONTEXT_WINDOW")"
+    source="用户手动输入"
+  elif [[ "$context" == "0" ]]; then
+    printf '\n' >&2
+    print_warn "当前模型没有内置上下文配置。" >&2
+    print_warn "直接回车 = 保留 OpenClaw 默认值（custom 模型通常是 16K 上下文）。" >&2
+    printf '  支持写法: 1M / 1m / 256K / 256k / 1000000 / 262144\n' >&2
+    context="$(read_optional_token_size "  请输入上下文窗口 contextWindow（可选）: ")"
+    if [[ "$context" != "0" ]]; then
+      source="用户手动输入"
+    fi
+  fi
+
   if [[ "$context" == "0" && "$max_tokens" == "0" ]]; then
-    print_info "当前模型没有官方核实的上下文元数据，保留 OpenClaw 默认值"
+    print_info "未设置上下文元数据，保留 OpenClaw 默认值（custom 模型通常是 16K）"
     return 0
   fi
 

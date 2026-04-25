@@ -13,6 +13,7 @@ param(
     [string]$ApiKey = $env:OPENCLAW_API_KEY,
     [string]$Model = $env:OPENCLAW_MODEL,
     [string]$BaseUrl = $env:OPENCLAW_BASE_URL,
+    [string]$ContextWindow = $env:OPENCLAW_CONTEXT_WINDOW,
     [switch]$Status,
     [switch]$List,
     [switch]$All,
@@ -281,13 +282,81 @@ function Convert-ModalityToInput {
     return ,@("text")
 }
 
+function Convert-TokenSize {
+    param([string]$Value)
+    $raw = if ($Value) { $Value.Trim() } else { "" }
+    if (-not $raw) { return 0 }
+
+    $normalized = $raw -replace ",", ""
+    if ($normalized -match '^(?<num>\d+(\.\d+)?)(?<unit>[kKmM])?$') {
+        $num = [double]$Matches["num"]
+        $unit = $Matches["unit"]
+        if ($unit -match "^[kK]$") { return [int][math]::Round($num * 1000) }
+        if ($unit -match "^[mM]$") { return [int][math]::Round($num * 1000000) }
+        return [int][math]::Round($num)
+    }
+
+    throw "无法识别 token 数量: $Value。示例: 1M、256K、1000000、262144"
+}
+
+function Read-OptionalTokenSize {
+    param([string]$Prompt, [string]$Value = "")
+    while ($true) {
+        $raw = if ($Value) { $Value.Trim() } else { (Read-Host $Prompt).Trim() }
+        if (-not $raw) { return 0 }
+        try { return (Convert-TokenSize $raw) }
+        catch {
+            Write-Warn $_
+            if ($Value) { return 0 }
+        }
+    }
+}
+
+function Resolve-CustomMetadata {
+    param([hashtable]$ProviderInfo, [string]$SelectedModel)
+    $modelInfo = Get-SelectedModelInfo -ProviderInfo $ProviderInfo -SelectedModel $SelectedModel
+    if ($modelInfo) { return $modelInfo.Clone() }
+
+    return @{
+        Id=$SelectedModel
+        Label=$SelectedModel
+        Input="文本"
+        Note=""
+        ContextWindow=0
+        MaxTokens=0
+        Source=""
+    }
+}
+
+function Complete-CustomMetadata {
+    param([hashtable]$ModelInfo)
+
+    if ($ContextWindow) {
+        $ModelInfo["ContextWindow"] = Read-OptionalTokenSize -Prompt "" -Value $ContextWindow
+        $ModelInfo["Source"] = "用户手动输入"
+    } elseif ($ModelInfo["ContextWindow"] -le 0) {
+        Write-Host ""
+        Write-Host "  当前模型没有内置上下文配置。" -ForegroundColor Yellow
+        Write-Host "  直接回车 = 保留 OpenClaw 默认值（custom 模型通常是 16K 上下文）。" -ForegroundColor Yellow
+        Write-Host "  支持写法: 1M / 1m / 256K / 256k / 1000000 / 262144"
+        $ctx = Read-OptionalTokenSize -Prompt "  请输入上下文窗口 contextWindow（可选）" -Value $ContextWindow
+        if ($ctx -gt 0) {
+            $ModelInfo["ContextWindow"] = $ctx
+            $ModelInfo["Source"] = "用户手动输入"
+        }
+    }
+
+    return $ModelInfo
+}
+
 function Apply-CustomModelMetadata {
     param([hashtable]$ProviderInfo, [string]$SelectedModel, [string]$EffectiveBaseUrl)
     if (-not $ProviderInfo -or $ProviderInfo.Mode -ne "custom" -or -not $SelectedModel) { return }
 
-    $modelInfo = Get-SelectedModelInfo -ProviderInfo $ProviderInfo -SelectedModel $SelectedModel
+    $modelInfo = Resolve-CustomMetadata -ProviderInfo $ProviderInfo -SelectedModel $SelectedModel
+    $modelInfo = Complete-CustomMetadata -ModelInfo $modelInfo
     if (-not $modelInfo -or (($modelInfo["ContextWindow"] -le 0) -and ($modelInfo["MaxTokens"] -le 0))) {
-        Write-Info "当前模型没有官方核实的上下文元数据，保留 OpenClaw 默认值"
+        Write-Info "未设置上下文元数据，保留 OpenClaw 默认值（custom 模型通常是 16K）"
         return
     }
 
