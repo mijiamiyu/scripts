@@ -17,6 +17,10 @@ curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/install-open
 ```
 
 安装脚本会安装 OpenClaw，并在最后调用中文模型配置流程。
+安装时会同时设置国内镜像：
+
+- npm: `https://registry.npmmirror.com`
+- ClawHub: `https://cn.clawhub-mirror.com`
 
 ## 更换模型
 
@@ -44,6 +48,30 @@ irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-mod
 ```bash
 OPENCLAW_PROVIDER=qwen OPENCLAW_API_KEY=sk-xxx OPENCLAW_MODEL=qwen3.6-flash \
 curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.sh | bash
+```
+
+## 打开 OpenClaw 文件夹
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/open-openclaw-folder.ps1 | iex
+```
+
+macOS / Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/open-openclaw-folder.sh | bash
+```
+
+如果 GitHub 访问慢，可以把域名换成 Gitee:
+
+```powershell
+irm https://gitee.com/mijiamiyu/scripts/raw/main/open-openclaw-folder.ps1 | iex
+```
+
+```bash
+curl -fsSL https://gitee.com/mijiamiyu/scripts/raw/main/open-openclaw-folder.sh | bash
 ```
 
 ## 说明

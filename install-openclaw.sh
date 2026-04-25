@@ -522,14 +522,40 @@ step_check_git() {
 }
 
 step_set_mirror() {
-  step "步骤 3/6: 设置国内 npm 镜像"
+  step "步骤 3/6: 设置国内镜像"
   local npm_cmd="${NODE_BIN_DIR:+$NODE_BIN_DIR/}npm"
-  if "$npm_cmd" config set registry https://registry.npmmirror.com; then
-    success "npm 镜像已设置为 https://registry.npmmirror.com"
-    return 0
+  if ! "$npm_cmd" config set registry https://registry.npmmirror.com; then
+    error "设置 npm 镜像失败"
+    return 1
   fi
-  error "设置 npm 镜像失败"
-  return 1
+  success "npm 镜像已设置为 https://registry.npmmirror.com"
+
+  export CLAWHUB_REGISTRY="https://cn.clawhub-mirror.com"
+  success "ClawHub 国内镜像已设置为 $CLAWHUB_REGISTRY"
+
+  local profile_file=""
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    profile_file="$HOME/.zshrc"
+  else
+    profile_file="$HOME/.bashrc"
+  fi
+
+  touch "$profile_file"
+  if grep -q '^export CLAWHUB_REGISTRY=' "$profile_file"; then
+    if sed --version >/dev/null 2>&1; then
+      sed -i 's|^export CLAWHUB_REGISTRY=.*|export CLAWHUB_REGISTRY="https://cn.clawhub-mirror.com"|' "$profile_file"
+    else
+      sed -i '' 's|^export CLAWHUB_REGISTRY=.*|export CLAWHUB_REGISTRY="https://cn.clawhub-mirror.com"|' "$profile_file"
+    fi
+  else
+    {
+      printf '\n'
+      printf '# OpenClaw ClawHub 国内镜像\n'
+      printf 'export CLAWHUB_REGISTRY="https://cn.clawhub-mirror.com"\n'
+    } >> "$profile_file"
+  fi
+  info "ClawHub 镜像已写入 $profile_file，新终端会自动生效"
+  return 0
 }
 
 _progress_bar() {

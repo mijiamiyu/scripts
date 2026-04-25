@@ -765,10 +765,21 @@ function Step-CheckGit {
 }
 
 function Step-SetMirror {
-    Write-Step "步骤 3/7: 设置国内 npm 镜像"
+    Write-Step "步骤 3/7: 设置国内镜像"
 
     $env:npm_config_registry = "https://registry.npmmirror.com"
     Write-Ok "npm 镜像已临时设置为 https://registry.npmmirror.com（仅本次安装生效）"
+
+    $clawHubRegistry = "https://cn.clawhub-mirror.com"
+    $env:CLAWHUB_REGISTRY = $clawHubRegistry
+    try {
+        [Environment]::SetEnvironmentVariable("CLAWHUB_REGISTRY", $clawHubRegistry, "User")
+        Write-Ok "ClawHub 国内镜像已写入用户环境变量: CLAWHUB_REGISTRY=$clawHubRegistry"
+        Write-Info "新打开的 PowerShell / CMD / OpenClaw 会自动使用该镜像"
+    } catch {
+        Write-Warn "ClawHub 镜像环境变量持久化失败，仅本次安装进程生效: $_"
+    }
+
     return $true
 }
 
