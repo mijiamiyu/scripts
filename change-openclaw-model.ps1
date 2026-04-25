@@ -59,9 +59,33 @@ function Invoke-OpenClaw {
     & $script:OpenClawCmd @OpenClawArgs
     $exitCode = $LASTEXITCODE
     if ($exitCode -ne 0 -and -not $AllowFailure) {
-        throw "openclaw $($OpenClawArgs -join ' ') 执行失败，退出码: $exitCode"
+        throw "openclaw $($OpenClawArgs[0]) 执行失败，退出码: $exitCode"
     }
     return $exitCode
+}
+
+function Test-CustomOnboardApplied {
+    param([string]$SelectedModel, [string]$EffectiveBaseUrl)
+
+    $configPath = Join-Path $HOME ".openclaw\openclaw.json"
+    if (-not (Test-Path $configPath)) { return $false }
+
+    try {
+        $config = Get-Content $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $targetBase = Normalize-Url $EffectiveBaseUrl
+        $providers = $config.models.providers
+        if (-not $providers) { return $false }
+
+        foreach ($providerProp in $providers.PSObject.Properties) {
+            $candidate = $providerProp.Value
+            if ((Normalize-Url $candidate.baseUrl) -ne $targetBase) { continue }
+            foreach ($modelProp in $candidate.models.PSObject.Properties) {
+                if ($modelProp.Value.id -eq $SelectedModel) { return $true }
+            }
+        }
+    } catch {}
+
+    return $false
 }
 
 function Test-GatewayRunning {
@@ -464,7 +488,18 @@ function Configure-Provider {
     }
 
     Write-Info "正在配置 OpenClaw..."
-    Invoke-OpenClaw -OpenClawArgs $onboardArgs
+    $onboardExit = Invoke-OpenClaw -OpenClawArgs $onboardArgs -AllowFailure
+    if ($onboardExit -ne 0) {
+        $applied = $false
+        if ($ProviderInfo.Mode -eq "custom") {
+            $applied = Test-CustomOnboardApplied -SelectedModel $SelectedModel -EffectiveBaseUrl $base
+        }
+        if ($applied) {
+            Write-Warn "openclaw onboard 返回退出码 $onboardExit，但配置已写入；通常是 Gateway 探测失败，继续补写模型元数据"
+        } else {
+            throw "openclaw onboard 执行失败，退出码: $onboardExit"
+        }
+    }
     Write-Ok "OpenClaw 配置完成"
 
     if ($ProviderInfo.Mode -eq "custom") {

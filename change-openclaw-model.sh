@@ -379,6 +379,35 @@ NODE
   fi
 }
 
+custom_onboard_applied() {
+  local model_id="$1"
+  local base_url="$2"
+  local config_path="$HOME/.openclaw/openclaw.json"
+  [[ -f "$config_path" ]] || return 1
+
+  CONFIG_PATH="$config_path" TARGET_BASE_URL="$base_url" TARGET_MODEL_ID="$model_id" node <<'NODE'
+const fs = require('fs');
+
+function normalizeUrl(value) {
+  return String(value || '').trim().replace(/\/+$/, '');
+}
+
+try {
+  const config = JSON.parse(fs.readFileSync(process.env.CONFIG_PATH, 'utf8'));
+  const targetBaseUrl = normalizeUrl(process.env.TARGET_BASE_URL || '');
+  const targetModelId = process.env.TARGET_MODEL_ID || '';
+  const providers = config?.models?.providers || {};
+  for (const provider of Object.values(providers)) {
+    if (normalizeUrl(provider?.baseUrl) !== targetBaseUrl) continue;
+    for (const model of Object.values(provider?.models || {})) {
+      if (model?.id === targetModelId) process.exit(0);
+    }
+  }
+} catch {}
+process.exit(1);
+NODE
+}
+
 select_model() {
   local provider_name="${1:-}"
   if [[ -n "$MODEL" ]]; then
@@ -509,7 +538,18 @@ if [[ -n "$provider_idx" ]]; then
     )
   fi
   print_info "正在配置 OpenClaw..."
+  set +e
   openclaw "${onboard_args[@]}"
+  onboard_rc=$?
+  set -e
+  if [[ "$onboard_rc" -ne 0 ]]; then
+    if [[ "${provider_modes[$provider_idx]}" == "custom" ]] && custom_onboard_applied "$selected_model" "$base"; then
+      print_warn "openclaw onboard 返回退出码 $onboard_rc，但配置已写入；通常是 Gateway 探测失败，继续补写模型元数据"
+    else
+      print_err "openclaw onboard 执行失败，退出码: $onboard_rc"
+      exit "$onboard_rc"
+    fi
+  fi
   print_ok "OpenClaw 配置完成"
   if [[ "${provider_modes[$provider_idx]}" == "custom" ]]; then
     apply_custom_model_metadata "$provider_name" "$selected_model" "$base"
