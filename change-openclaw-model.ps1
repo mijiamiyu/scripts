@@ -495,12 +495,14 @@ function Configure-Provider {
             $applied = Test-CustomOnboardApplied -SelectedModel $SelectedModel -EffectiveBaseUrl $base
         }
         if ($applied) {
-            Write-Warn "openclaw onboard 返回退出码 $onboardExit，但配置已写入；通常是 Gateway 探测失败，继续补写模型元数据"
+            Write-Warn "openclaw onboard 返回退出码 $onboardExit，但模型配置已写入；通常是 Gateway 探测失败，继续补写模型元数据"
+            Write-Info "Gateway 启动失败不等于模型配置失败，可稍后单独执行 openclaw gateway restart 排查"
         } else {
             throw "openclaw onboard 执行失败，退出码: $onboardExit"
         }
     }
     Write-Ok "OpenClaw 配置完成"
+    Write-Info "配置文件已写入: $HOME\.openclaw\openclaw.json"
 
     if ($ProviderInfo.Mode -eq "custom") {
         Apply-CustomModelMetadata -ProviderInfo $ProviderInfo -SelectedModel $SelectedModel -EffectiveBaseUrl $base

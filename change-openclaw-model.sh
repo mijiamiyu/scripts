@@ -544,13 +544,15 @@ if [[ -n "$provider_idx" ]]; then
   set -e
   if [[ "$onboard_rc" -ne 0 ]]; then
     if [[ "${provider_modes[$provider_idx]}" == "custom" ]] && custom_onboard_applied "$selected_model" "$base"; then
-      print_warn "openclaw onboard 返回退出码 $onboard_rc，但配置已写入；通常是 Gateway 探测失败，继续补写模型元数据"
+      print_warn "openclaw onboard 返回退出码 $onboard_rc，但模型配置已写入；通常是 Gateway 探测失败，继续补写模型元数据"
+      print_info "Gateway 启动失败不等于模型配置失败，可稍后单独执行 openclaw gateway restart 排查"
     else
       print_err "openclaw onboard 执行失败，退出码: $onboard_rc"
       exit "$onboard_rc"
     fi
   fi
   print_ok "OpenClaw 配置完成"
+  print_info "配置文件已写入: $HOME/.openclaw/openclaw.json"
   if [[ "${provider_modes[$provider_idx]}" == "custom" ]]; then
     apply_custom_model_metadata "$provider_name" "$selected_model" "$base"
   fi
