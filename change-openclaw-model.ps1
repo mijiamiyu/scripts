@@ -561,7 +561,6 @@ if ($selectedModel -and (-not $providerInfo -or $providerInfo.Mode -ne "custom")
     Write-Ok "默认模型已设置"
 } elseif ($selectedModel -and $providerInfo.Mode -eq "custom") {
     Write-Ok "Custom 模型已由 openclaw onboard 写入: $selectedModel"
-    Write-Info "跳过 openclaw models set，避免裸模型名被解析到 openai/*"
 }
 
 Write-Host ""

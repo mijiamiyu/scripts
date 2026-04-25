@@ -564,7 +564,6 @@ if [[ -n "$selected_model" && ( -z "$provider_idx" || "${provider_modes[$provide
   print_ok "默认模型已设置"
 elif [[ -n "$selected_model" && -n "$provider_idx" && "${provider_modes[$provider_idx]}" == "custom" ]]; then
   print_ok "Custom 模型已由 openclaw onboard 写入: $selected_model"
-  print_info "跳过 openclaw models set，避免裸模型名被解析到 openai/*"
 fi
 
 printf '\n'
