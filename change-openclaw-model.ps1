@@ -114,7 +114,7 @@ $script:Providers = @(
     @{ Key="5";  Name="zai";       Label="智谱 / BigModel";  Mode="custom"; BaseUrl="https://open.bigmodel.cn/api/paas/v4"; Compatibility="openai"; Portal="https://open.bigmodel.cn/" },
     @{ Key="6";  Name="moonshot";  Label="Moonshot / Kimi"; Mode="custom"; BaseUrl="https://api.moonshot.ai/v1"; Compatibility="openai"; Portal="https://platform.moonshot.cn/" },
     @{ Key="7";  Name="qianfan";   Label="百度千帆";         Mode="custom"; BaseUrl="https://qianfan.baidubce.com/v2"; Compatibility="openai"; Portal="https://console.bce.baidu.com/qianfan/" },
-    @{ Key="8";  Name="xiaomi";    Label="小米 MiMo";        Mode="builtin"; AuthChoice="xiaomi-api-key"; KeyFlag="--xiaomi-api-key"; Portal="" },
+    @{ Key="8";  Name="xiaomi";    Label="小米 MiMo";        Mode="builtin"; AuthChoice="xiaomi-api-key"; KeyFlag="--xiaomi-api-key"; Portal="https://platform.xiaomimimo.com/token-plan" },
     @{ Key="9";  Name="openai";    Label="OpenAI";          Mode="builtin"; AuthChoice="openai-api-key"; KeyFlag="--openai-api-key"; Portal="https://platform.openai.com/" },
     @{ Key="10"; Name="anthropic"; Label="Anthropic";       Mode="builtin"; AuthChoice="apiKey"; KeyFlag="--anthropic-api-key"; Portal="https://console.anthropic.com/" },
     @{ Key="11"; Name="custom";    Label="自定义兼容接口";   Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }

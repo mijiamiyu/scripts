@@ -67,7 +67,7 @@ provider_names=(deepseek minimax qwen volcengine zai moonshot qianfan xiaomi ope
 provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao" "智谱 / BigModel" "Moonshot / Kimi" "百度千帆" "小米 MiMo" "OpenAI" "Anthropic" "自定义兼容接口")
 provider_modes=(custom custom custom custom custom custom custom builtin builtin builtin custom)
 provider_base_urls=("https://api.deepseek.com" "https://api.minimax.io/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "https://qianfan.baidubce.com/v2" "" "" "" "")
-provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://console.bce.baidu.com/qianfan/" "" "https://platform.openai.com/" "https://console.anthropic.com/" "")
+provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://console.bce.baidu.com/qianfan/" "https://platform.xiaomimimo.com/token-plan" "https://platform.openai.com/" "https://console.anthropic.com/" "")
 provider_auth=("" "" "" "" "" "" "" "xiaomi-api-key" "openai-api-key" "apiKey" "")
 provider_keyflag=("" "" "" "" "" "" "" "--xiaomi-api-key" "--openai-api-key" "--anthropic-api-key" "")
 
