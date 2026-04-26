@@ -236,13 +236,27 @@ function Main {
     }
 
     # Step 1: 远程一键场景（irm | iex）自动启用 -Force
+    # PowerShell 的 irm | iex 是当前进程字符串求值，stdin 不会被重定向，
+    # 所以不能靠 IsInputRedirected 判断；改看脚本是不是有文件路径——
+    # iex 求值的字符串没有 $MyInvocation.MyCommand.Path / $PSCommandPath
     if (-not $Force) {
+        $hasPath = $false
         try {
-            if ([Console]::IsInputRedirected) {
-                Write-Info "检测到 stdin 被重定向（远程一键 irm | iex 场景），自动启用 -Force 模式"
-                $Force = $true
-            }
+            if ($MyInvocation.MyCommand.Path) { $hasPath = $true }
+            elseif ($PSCommandPath)            { $hasPath = $true }
         } catch {}
+
+        $stdinRedirected = $false
+        try { if ([Console]::IsInputRedirected) { $stdinRedirected = $true } } catch {}
+
+        if (-not $hasPath -or $stdinRedirected) {
+            if (-not $hasPath) {
+                Write-Info "检测到通过 irm | iex 远程执行（无脚本文件路径），自动启用 -Force 模式"
+            } else {
+                Write-Info "检测到 stdin 被重定向（管道执行场景），自动启用 -Force 模式"
+            }
+            $Force = $true
+        }
     }
 
     # Step 2: 确认
