@@ -235,7 +235,17 @@ function Main {
         return
     }
 
-    # Step 1: 确认
+    # Step 1: 远程一键场景（irm | iex）自动启用 -Force
+    if (-not $Force) {
+        try {
+            if ([Console]::IsInputRedirected) {
+                Write-Info "检测到 stdin 被重定向（远程一键 irm | iex 场景），自动启用 -Force 模式"
+                $Force = $true
+            }
+        } catch {}
+    }
+
+    # Step 2: 确认
     if (-not $Force) {
         Write-Host "  即将执行的操作：" -ForegroundColor Yellow
         Write-Host "    1. 杀掉所有 OpenClaw node 进程" -ForegroundColor White

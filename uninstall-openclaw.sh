@@ -246,6 +246,12 @@ main() {
     return 0
   fi
 
+  # 远程一键场景（curl | bash）stdin 不是终端，自动启用 --force
+  if [[ $FORCE -eq 0 && ! -t 0 ]]; then
+    info "检测到 stdin 不是终端（远程一键 curl | bash 场景），自动启用 --force 模式"
+    FORCE=1
+  fi
+
   if [[ $FORCE -eq 0 ]]; then
     printf "  ${C_YELLOW}即将执行的操作：${C_RESET}\n"
     printf "    1. 停止所有 OpenClaw 相关进程\n"
