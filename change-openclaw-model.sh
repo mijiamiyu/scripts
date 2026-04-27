@@ -44,7 +44,7 @@ OpenClaw 中文模型配置与切换脚本
   curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.sh | bash
 
 参数:
-  --provider <name>       厂商: deepseek/minimax/qwen/volcengine/ark-coding/qwen-token-plan/zai/moonshot/xiaomi/openai/custom
+  --provider <name>       厂商: deepseek/minimax/qwen/volcengine/ark-coding/qwen-token-plan/zai/moonshot/xiaomi/custom
   --api-key <key>         API Key
   --model <id>            直接指定 Model ID
   --base-url <url>        自定义 Base URL
@@ -77,14 +77,14 @@ done
 
 # provider_keys 中空字符串表示"主菜单不显示"——这些是子计费方式,
 # 用户先选 volcengine/qwen,再二级菜单升级到 ark-coding / qwen-token-plan
-provider_keys=(1 2 3 4 "" "" 5 6 7 8 9)
-provider_names=(deepseek minimax qwen volcengine ark-coding qwen-token-plan zai moonshot xiaomi openai custom)
-provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao" "火山方舟 Coding Plan" "阿里百炼 Token Plan" "智谱 / BigModel" "Moonshot / Kimi" "小米 MiMo" "OpenAI" "自定义兼容接口")
-provider_modes=(custom custom custom custom custom custom custom custom custom custom custom)
-provider_base_urls=("https://api.deepseek.com" "https://api.minimaxi.com/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "https://api.xiaomimimo.com/v1" "https://api.openai.com/v1" "")
-provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" "https://bailian.console.aliyun.com/?tab=tokenplan" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://platform.xiaomimimo.com/token-plan" "https://platform.openai.com/" "")
-provider_auth=("" "" "" "" "" "" "" "" "" "" "")
-provider_keyflag=("" "" "" "" "" "" "" "" "" "" "")
+provider_keys=(1 2 3 4 "" "" 5 6 7 8)
+provider_names=(deepseek minimax qwen volcengine ark-coding qwen-token-plan zai moonshot xiaomi custom)
+provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao" "火山方舟 Coding Plan" "阿里百炼 Token Plan" "智谱 / BigModel" "Moonshot / Kimi" "小米 MiMo" "自定义兼容接口")
+provider_modes=(custom custom custom custom custom custom custom custom custom custom)
+provider_base_urls=("https://api.deepseek.com" "https://api.minimaxi.com/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "https://api.xiaomimimo.com/v1" "")
+provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" "https://bailian.console.aliyun.com/?tab=tokenplan" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://platform.xiaomimimo.com/token-plan" "")
+provider_auth=("" "" "" "" "" "" "" "" "" "")
+provider_keyflag=("" "" "" "" "" "" "" "" "" "")
 
 # 把上下文 token 数格式化成人类可读的 K/M 标签(K=1024,M=1024*1024)
 # 仅在能整除时才用 K/M,否则直接输出原始数字
@@ -196,7 +196,7 @@ select_provider() {
     print_warn "无效编号,请输入 0-${visible_max}" >&2
   done
 
-  # 主厂商选定后,询问是否升级到付费计费方式 / 订阅 OAuth
+  # 主厂商选定后,询问是否升级到付费计费方式
   case "${provider_names[$idx]}" in
     volcengine)
       idx="$(ask_plan_upgrade "$idx" ark-coding 'Coding Plan(智能路由,需在火山方舟控制台单独订阅)')"
@@ -204,80 +204,8 @@ select_provider() {
     qwen)
       idx="$(ask_plan_upgrade "$idx" qwen-token-plan 'Token Plan(智能路由,需在阿里百炼控制台单独订阅)')"
       ;;
-    openai)
-      local route
-      route="$(ask_openai_route)"
-      if [[ "$route" == "subscription" ]]; then
-        printf 'SUBSCRIPTION\n'
-        return
-      fi
-      ;;
   esac
   printf '%s\n' "$idx"
-}
-
-# 二级菜单:OpenAI 接入方式(API Key vs ChatGPT 订阅 OAuth)
-# 返回 "apikey" 或 "subscription"
-ask_openai_route() {
-  printf '\n  OpenAI 接入方式(可选):\n' >&2
-  printf '   1) API Key(按 token 付费,默认)\n' >&2
-  printf '   2) ChatGPT 订阅(Codex OAuth)\n' >&2
-  local route
-  while true; do
-    printf '  请选择 [1/2,直接回车=1]: ' >&2
-    read -r route <&3
-    case "$route" in
-      ""|1) printf 'apikey\n'; return ;;
-      2)    printf 'subscription\n'; return ;;
-      *)    print_warn "无效输入,请输入 1 或 2" >&2 ;;
-    esac
-  done
-}
-
-# 订阅路径:让 openclaw configure 接管 OAuth 流程
-# 首次安装(无 openclaw.json)先跑 onboard --auth-choice skip 建基础架子
-handle_subscription_flow() {
-  step "配置 ChatGPT 订阅(OpenAI Codex OAuth)"
-  printf '\n' >&2
-  print_info "接下来由 OpenClaw 接管,请按下列顺序选择:" >&2
-  printf '         1. Where will the Gateway run?  → Local (回车确认)\n' >&2
-  printf '         2. Model/auth provider          → OpenAI\n' >&2
-  printf '         3. OpenAI auth method           → OpenAI Codex (ChatGPT OAuth)\n' >&2
-  printf '         4. 浏览器会自动弹出,完成登录授权\n' >&2
-  printf '         5. Default model                → 选你订阅包含的模型\n' >&2
-  printf '\n' >&2
-
-  if [[ ! -f "$HOME/.openclaw/openclaw.json" ]]; then
-    print_info "首次配置,先用 skip-auth onboard 创建 OpenClaw 基础环境..." >&2
-    if ! openclaw onboard --non-interactive --accept-risk \
-        --auth-choice skip --mode local \
-        --gateway-port 18789 --gateway-bind loopback \
-        --install-daemon --daemon-runtime node --skip-skills </dev/null; then
-      print_err "skip-auth onboard 失败,无法继续订阅配置流程" >&2
-      exit 1
-    fi
-    print_ok "基础环境就绪" >&2
-    printf '\n' >&2
-  fi
-
-  print_info "正在调起 openclaw configure --section model..." >&2
-  printf '\n' >&2
-
-  # </dev/tty 确保 openclaw 能从终端读输入(脚本通过 curl|bash 跑时 stdin 是管道)
-  if ! openclaw configure --section model </dev/tty; then
-    print_err "openclaw configure 失败"
-    exit 1
-  fi
-
-  printf '\n' >&2
-  print_ok "OpenAI 订阅配置完成"
-
-  if gateway_is_running; then
-    printf '\n' >&2
-    print_info "重启 Gateway 让新配置生效..."
-    openclaw gateway restart </dev/null
-    openclaw gateway probe </dev/null || true
-  fi
 }
 
 # 二级菜单:问用户是要主厂商的标准 API 还是订阅计费方式
@@ -376,28 +304,6 @@ models_for_provider() {
         "xiaomi/mimo-v2.5|MiMo V2.5|文本/图片|1M 上下文，通用|1048576|0|" \
         "xiaomi/mimo-v2-pro|MiMo V2 Pro|文本/图片|1M 上下文，旧版强推理|1048576|0|" \
         "xiaomi/mimo-v2-flash|MiMo V2 Flash|文本/图片|128K 上下文，轻量高速|131072|0|" ;;
-    openai)
-      # OpenAI 官方 token 数为十进制(1M=1000000),原样写入
-      printf '%s\n' \
-        "openai/gpt-5.5|GPT-5.5|文本/图片|1.05M 上下文|1050000|0|" \
-        "openai/gpt-5.5-pro|GPT-5.5 Pro|文本/图片|1.05M 上下文|1050000|0|" \
-        "openai/gpt-5.4|GPT-5.4|文本/图片|1.05M 上下文|1050000|0|" \
-        "openai/gpt-5.4-pro|GPT-5.4 Pro|文本/图片|1.05M 上下文|1050000|0|" \
-        "openai/gpt-5.4-mini|GPT-5.4 Mini|文本/图片|400K 上下文，轻量|400000|0|" \
-        "openai/gpt-5.4-nano|GPT-5.4 Nano|文本/图片|400K 上下文，最轻量|400000|0|" \
-        "openai/gpt-5.2|GPT-5.2|文本/图片|400K 上下文|400000|0|" \
-        "openai/gpt-5.1|GPT-5.1|文本/图片|400K 上下文|400000|0|" \
-        "openai/gpt-5|GPT-5|文本/图片|400K 上下文|400000|0|" \
-        "openai/gpt-5-mini|GPT-5 Mini|文本/图片|400K 上下文|400000|0|" \
-        "openai/gpt-5-nano|GPT-5 Nano|文本/图片|400K 上下文|400000|0|" \
-        "openai/gpt-4.1|GPT-4.1|文本/图片|1M 上下文|1047576|0|" \
-        "openai/gpt-4.1-mini|GPT-4.1 Mini|文本/图片|1M 上下文|1047576|0|" \
-        "openai/gpt-4.1-nano|GPT-4.1 Nano|文本/图片|1M 上下文|1047576|0|" \
-        "openai/gpt-4o|GPT-4o|文本/图片|128K 上下文|128000|0|" \
-        "openai/gpt-4o-mini|GPT-4o Mini|文本/图片|128K 上下文|128000|0|" \
-        "openai/o3|o3|文本/图片|200K 上下文，推理模型|200000|0|" \
-        "openai/o3-pro|o3 Pro|文本/图片|200K 上下文，推理增强|200000|0|" \
-        "openai/o4-mini|o4 Mini|文本/图片|200K 上下文，轻量推理|200000|0|" ;;
   esac
 }
 
@@ -718,11 +624,6 @@ while [[ "$flow_state" != "configured" ]]; do
   case "$flow_state" in
     provider)
       provider_idx="$(select_provider)"
-      # 订阅 OAuth 路径:不走后续 model/apikey 状态机,直接交给 openclaw configure
-      if [[ "$provider_idx" == "SUBSCRIPTION" ]]; then
-        handle_subscription_flow
-        exit 0
-      fi
       provider_name=""
       [[ -n "$provider_idx" ]] && provider_name="${provider_names[$provider_idx]}"
       flow_state="model"

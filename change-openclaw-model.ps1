@@ -165,8 +165,7 @@ $script:Providers = @(
     @{ Key="5";  Name="zai";            Label="智谱 / BigModel";        Mode="custom"; BaseUrl="https://open.bigmodel.cn/api/paas/v4"; Compatibility="openai"; Portal="https://open.bigmodel.cn/" },
     @{ Key="6";  Name="moonshot";       Label="Moonshot / Kimi";       Mode="custom"; BaseUrl="https://api.moonshot.ai/v1"; Compatibility="openai"; Portal="https://platform.moonshot.cn/" },
     @{ Key="7";  Name="xiaomi";         Label="小米 MiMo";              Mode="custom"; BaseUrl="https://api.xiaomimimo.com/v1"; Compatibility="openai"; Portal="https://platform.xiaomimimo.com/token-plan" },
-    @{ Key="8";  Name="openai";         Label="OpenAI";                Mode="custom"; BaseUrl="https://api.openai.com/v1"; Compatibility="openai"; Portal="https://platform.openai.com/" },
-    @{ Key="9";  Name="custom";         Label="自定义兼容接口";         Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
+    @{ Key="8";  Name="custom";         Label="自定义兼容接口";         Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
 )
 
 $script:ModelMap = @{
@@ -230,27 +229,6 @@ $script:ModelMap = @{
         (New-Model "xiaomi/mimo-v2-pro" "MiMo V2 Pro" "文本/图片" "1M 上下文，旧版强推理" 1048576 0 ""),
         (New-Model "xiaomi/mimo-v2-flash" "MiMo V2 Flash" "文本/图片" "128K 上下文，轻量高速" 131072 0 "")
     )
-    "openai" = @(
-        (New-Model "openai/gpt-5.5" "GPT-5.5" "文本/图片" "1.05M 上下文" 1050000 0 ""),
-        (New-Model "openai/gpt-5.5-pro" "GPT-5.5 Pro" "文本/图片" "1.05M 上下文" 1050000 0 ""),
-        (New-Model "openai/gpt-5.4" "GPT-5.4" "文本/图片" "1.05M 上下文" 1050000 0 ""),
-        (New-Model "openai/gpt-5.4-pro" "GPT-5.4 Pro" "文本/图片" "1.05M 上下文" 1050000 0 ""),
-        (New-Model "openai/gpt-5.4-mini" "GPT-5.4 Mini" "文本/图片" "400K 上下文，轻量" 400000 0 ""),
-        (New-Model "openai/gpt-5.4-nano" "GPT-5.4 Nano" "文本/图片" "400K 上下文，最轻量" 400000 0 ""),
-        (New-Model "openai/gpt-5.2" "GPT-5.2" "文本/图片" "400K 上下文" 400000 0 ""),
-        (New-Model "openai/gpt-5.1" "GPT-5.1" "文本/图片" "400K 上下文" 400000 0 ""),
-        (New-Model "openai/gpt-5" "GPT-5" "文本/图片" "400K 上下文" 400000 0 ""),
-        (New-Model "openai/gpt-5-mini" "GPT-5 Mini" "文本/图片" "400K 上下文" 400000 0 ""),
-        (New-Model "openai/gpt-5-nano" "GPT-5 Nano" "文本/图片" "400K 上下文" 400000 0 ""),
-        (New-Model "openai/gpt-4.1" "GPT-4.1" "文本/图片" "1M 上下文" 1047576 0 ""),
-        (New-Model "openai/gpt-4.1-mini" "GPT-4.1 Mini" "文本/图片" "1M 上下文" 1047576 0 ""),
-        (New-Model "openai/gpt-4.1-nano" "GPT-4.1 Nano" "文本/图片" "1M 上下文" 1047576 0 ""),
-        (New-Model "openai/gpt-4o" "GPT-4o" "文本/图片" "128K 上下文" 128000 0 ""),
-        (New-Model "openai/gpt-4o-mini" "GPT-4o Mini" "文本/图片" "128K 上下文" 128000 0 ""),
-        (New-Model "openai/o3" "o3" "文本/图片" "200K 上下文，推理模型" 200000 0 ""),
-        (New-Model "openai/o3-pro" "o3 Pro" "文本/图片" "200K 上下文，推理增强" 200000 0 ""),
-        (New-Model "openai/o4-mini" "o4 Mini" "文本/图片" "200K 上下文，轻量推理" 200000 0 "")
-    )
 }
 
 function Select-Provider {
@@ -281,85 +259,9 @@ function Select-Provider {
         if ($choice -eq "0") { return $null }
         $picked = $script:Providers | Where-Object { ($_.Key -and $_.Key -eq $choice) -or $_.Name -eq $choice } | Select-Object -First 1
         if ($picked -and $picked.Key) {
-            # OpenAI 二级菜单:API Key vs ChatGPT 订阅
-            if ($picked.Name -eq "openai") {
-                $route = Get-OpenAIRoute
-                if ($route -eq "subscription") {
-                    return @{ SubscriptionFlow = $true }
-                }
-            }
             return (Get-PlanUpgrade -Base $picked)
         }
         Write-Warn "无效编号,请输入 0-$visibleMax"
-    }
-}
-
-# 二级菜单:OpenAI 接入方式(API Key vs ChatGPT 订阅 OAuth)
-function Get-OpenAIRoute {
-    Write-Host ""
-    Write-Host "  OpenAI 接入方式(可选):" -ForegroundColor Cyan
-    Write-Host "   1) API Key(按 token 付费,默认)"
-    Write-Host "   2) ChatGPT 订阅(Codex OAuth)"
-    while ($true) {
-        $r = (Read-Host "  请选择 [1/2,直接回车=1]").Trim()
-        switch ($r) {
-            { $_ -in @("", "1") } { return "apikey" }
-            "2" { return "subscription" }
-            default { Write-Warn "无效输入,请输入 1 或 2" }
-        }
-    }
-}
-
-# 订阅路径:让 openclaw configure 接管 OAuth 流程
-function Invoke-SubscriptionFlow {
-    Write-Step "配置 ChatGPT 订阅(OpenAI Codex OAuth)"
-    Write-Host ""
-    Write-Info "接下来由 OpenClaw 接管,请按下列顺序选择:"
-    Write-Host "         1. Where will the Gateway run?  → Local (回车确认)"
-    Write-Host "         2. Model/auth provider          → OpenAI"
-    Write-Host "         3. OpenAI auth method           → OpenAI Codex (ChatGPT OAuth)"
-    Write-Host "         4. 浏览器会自动弹出,完成登录授权"
-    Write-Host "         5. Default model                → 选你订阅包含的模型"
-    Write-Host ""
-
-    $configPath = Join-Path $env:USERPROFILE ".openclaw\openclaw.json"
-    if (-not (Test-Path $configPath)) {
-        Write-Info "首次配置,先用 skip-auth onboard 创建 OpenClaw 基础环境..."
-        $rc = Invoke-OpenClaw -OpenClawArgs @(
-            "onboard", "--non-interactive", "--accept-risk",
-            "--auth-choice", "skip", "--mode", "local",
-            "--gateway-port", "18789", "--gateway-bind", "loopback",
-            "--install-daemon", "--daemon-runtime", "node", "--skip-skills"
-        ) -AllowFailure
-        if ($rc -ne 0) {
-            Write-Err "skip-auth onboard 失败,无法继续订阅配置流程"
-            throw "skip-auth onboard 失败 (exit code $rc)"
-        }
-        Write-Ok "基础环境就绪"
-        Write-Host ""
-    }
-
-    Write-Info "正在调起 openclaw configure --section model..."
-    Write-Host ""
-
-    # 用 cmd /c "...< CON" 让 openclaw 直接从 Windows 控制台设备读 stdin,
-    # 等价于 .sh 的 </dev/tty;否则 PowerShell 通过 irm | iex 调用时,
-    # & 启动的子进程 stdin 不是真终端,openclaw 读不到键盘会卡死
-    $cmdLine = '"' + $script:OpenClawCmd + '" configure --section model < CON'
-    & cmd /c $cmdLine
-    if ($LASTEXITCODE -ne 0) {
-        Write-Err "openclaw configure 失败,退出码: $LASTEXITCODE"
-        throw "openclaw configure 失败 (exit code $LASTEXITCODE)"
-    }
-
-    Write-Host ""
-    Write-Ok "OpenAI 订阅配置完成"
-
-    if (Test-GatewayRunning) {
-        Write-Host ""
-        Write-Info "重启 Gateway 让新配置生效..."
-        Invoke-OpenClaw -OpenClawArgs @("gateway", "restart") -AllowFailure | Out-Null
-        Invoke-OpenClaw -OpenClawArgs @("gateway", "probe") -AllowFailure | Out-Null
     }
 }
 
@@ -722,12 +624,6 @@ if ($Provider -or $ApiKey -or $BaseUrl -or -not $Model) {
         switch ($flowState) {
             "provider" {
                 $providerInfo = Select-Provider
-                # 订阅 OAuth 路径:不走后续 model/apikey 状态机,直接交给 openclaw configure
-                if ($providerInfo -and $providerInfo.SubscriptionFlow) {
-                    Invoke-SubscriptionFlow
-                    $flowState = "configured"
-                    break
-                }
                 $flowState = "model"
             }
             "model" {
