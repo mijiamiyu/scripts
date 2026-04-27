@@ -76,7 +76,7 @@ provider_keys=(1 2 3 4 5 6 7 8 9 10 11)
 provider_names=(deepseek minimax qwen volcengine zai moonshot qianfan xiaomi openai anthropic custom)
 provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao" "智谱 / BigModel" "Moonshot / Kimi" "百度千帆" "小米 MiMo" "OpenAI" "Anthropic" "自定义兼容接口")
 provider_modes=(custom custom custom custom custom custom custom builtin builtin builtin custom)
-provider_base_urls=("https://api.deepseek.com" "https://api.minimax.io/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "https://qianfan.baidubce.com/v2" "" "" "" "")
+provider_base_urls=("https://api.deepseek.com" "https://api.minimax.io/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "https://qianfan.baidubce.com/v2" "" "" "" "")
 provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://console.bce.baidu.com/qianfan/" "https://platform.xiaomimimo.com/token-plan" "https://platform.openai.com/" "https://console.anthropic.com/" "")
 provider_auth=("" "" "" "" "" "" "" "xiaomi-api-key" "openai-api-key" "apiKey" "")
 provider_keyflag=("" "" "" "" "" "" "" "--xiaomi-api-key" "--openai-api-key" "--anthropic-api-key" "")
@@ -171,8 +171,7 @@ models_for_provider() {
         "doubao-seed-2-0-code-preview-260215|Doubao Seed 2.0 Code 快照|文本/图片|版本化 ID" \
         "doubao-seed-2-0-pro-260215|Doubao Seed 2.0 Pro 快照|文本/图片|版本化 ID" \
         "doubao-seed-2-0-lite-260215|Doubao Seed 2.0 Lite 快照|文本/图片|版本化 ID" \
-        "doubao-seed-2-0-mini-260215|Doubao Seed 2.0 Mini 快照|文本/图片|版本化 ID" \
-        "ark-code-latest|Ark Code Latest|文本|由方舟控制台选择模型" ;;
+        "doubao-seed-2-0-mini-260215|Doubao Seed 2.0 Mini 快照|文本/图片|版本化 ID" ;;
     zai)
       printf '%s\n' \
         "glm-5.1|GLM-5.1|文本|当前快速开始默认模型" \
