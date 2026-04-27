@@ -554,7 +554,7 @@ step_set_mirror() {
       printf 'export CLAWHUB_REGISTRY="https://cn.clawhub-mirror.com"\n'
     } >> "$profile_file"
   fi
-  info "ClawHub 镜像已写入 $profile_file，新终端会自动生效"
+  info "ClawHub 镜像已写入 ${profile_file}，新终端会自动生效"
   return 0
 }
 
