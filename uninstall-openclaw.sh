@@ -304,7 +304,7 @@ main() {
     printf "    5. 从 shell profile 移除 CLAWHUB_REGISTRY 等环境变量\n\n"
     printf "  确认继续？[y/N] "
     read -r confirm
-    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+    if [[ ! "$confirm" =~ ^[Yy] ]]; then
       info "已取消"
       return 0
     fi
