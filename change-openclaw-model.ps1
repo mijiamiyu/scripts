@@ -163,7 +163,9 @@ $script:Providers = @(
     @{ Key="";   Name="ark-coding";     Label="火山方舟 Coding Plan";   Mode="custom"; BaseUrl="https://ark.cn-beijing.volces.com/api/coding/v3"; Compatibility="openai"; Portal="https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" },
     @{ Key="";   Name="qwen-token-plan";Label="阿里百炼 Token Plan";    Mode="custom"; BaseUrl="https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"; Compatibility="openai"; Portal="https://bailian.console.aliyun.com/?tab=tokenplan" },
     @{ Key="5";  Name="zai";            Label="智谱 / BigModel";        Mode="custom"; BaseUrl="https://open.bigmodel.cn/api/paas/v4"; Compatibility="openai"; Portal="https://open.bigmodel.cn/" },
-    @{ Key="6";  Name="moonshot";       Label="Moonshot / Kimi";       Mode="custom"; BaseUrl="https://api.moonshot.ai/v1"; Compatibility="openai"; Portal="https://platform.moonshot.cn/" },
+    @{ Key="";   Name="zai-coding-plan"; Label="智谱 BigModel Coding Plan"; Mode="custom"; BaseUrl="https://open.bigmodel.cn/api/coding/paas/v4"; Compatibility="openai"; Portal="https://open.bigmodel.cn/" },
+    @{ Key="6";  Name="moonshot";       Label="Moonshot / Kimi";       Mode="custom"; BaseUrl="https://api.moonshot.cn/v1"; Compatibility="openai"; Portal="https://platform.moonshot.cn/" },
+    @{ Key="";   Name="moonshot-coding-plan"; Label="Kimi Coding Plan"; Mode="custom"; BaseUrl="https://api.kimi.com/coding/v1"; Compatibility="openai"; Portal="https://platform.moonshot.cn/" },
     @{ Key="7";  Name="xiaomi";         Label="小米 MiMo";              Mode="custom"; BaseUrl="https://api.xiaomimimo.com/v1"; Compatibility="openai"; Portal="https://platform.xiaomimimo.com/" },
     @{ Key="";   Name="xiaomi-token-plan"; Label="小米 MiMo Token Plan"; Mode="custom"; BaseUrl="https://token-plan-cn.xiaomimimo.com/v1"; Compatibility="openai"; Portal="https://platform.xiaomimimo.com/token-plan" },
     @{ Key="8";  Name="custom";         Label="自定义兼容接口";         Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
@@ -220,9 +222,19 @@ $script:ModelMap = @{
         (New-Model "glm-5-turbo" "GLM-5 Turbo" "文本/图片" "200K 上下文，多模态 Coding 基座" 204800 0 ""),
         (New-Model "glm-4.6" "GLM-4.6" "文本/图片" "128K 上下文，视觉理解" 131072 0 "")
     )
+    "zai-coding-plan" = @(
+        (New-Model "glm-5.1" "GLM-5.1" "文本" "200K 上下文，Coding Plan 路由" 204800 0 ""),
+        (New-Model "glm-5" "GLM-5" "文本" "200K 上下文，Coding Plan 路由" 204800 0 ""),
+        (New-Model "glm-4.7" "GLM-4.7" "文本" "200K 上下文，Coding Plan 路由" 204800 0 ""),
+        (New-Model "glm-5-turbo" "GLM-5 Turbo" "文本/图片" "200K 上下文，Coding Plan 路由" 204800 0 ""),
+        (New-Model "glm-4.6" "GLM-4.6" "文本/图片" "128K 上下文，Coding Plan 路由" 131072 0 "")
+    )
     "moonshot" = @(
         (New-Model "kimi-k2.6" "Kimi K2.6" "文本/图片" "256K 上下文，Kimi 新一代" 262144 0 ""),
         (New-Model "kimi-k2.5" "Kimi K2.5" "文本/图片" "256K 上下文，视觉/代码/Agent" 262144 0 "")
+    )
+    "moonshot-coding-plan" = @(
+        (New-Model "kimi-for-coding" "Kimi for Coding" "文本" "Coding Plan 专用单模型" 0 0 "")
     )
     "xiaomi" = @(
         (New-Model "xiaomi/mimo-v2.5-pro" "MiMo V2.5 Pro" "文本/图片" "1M 上下文，强推理/复杂任务" 1048576 0 ""),
@@ -278,6 +290,8 @@ function Get-PlanUpgrade {
     $planMap = @{
         "volcengine" = @{ Name="ark-coding"; Desc="Coding Plan(智能路由,需在火山方舟控制台单独订阅)" }
         "qwen"       = @{ Name="qwen-token-plan"; Desc="Token Plan(智能路由,需在阿里百炼控制台单独订阅)" }
+        "zai"        = @{ Name="zai-coding-plan"; Desc="Coding Plan(智能路由,需在智谱 BigModel 控制台单独订阅)" }
+        "moonshot"   = @{ Name="moonshot-coding-plan"; Desc="Coding Plan(只支持 kimi-for-coding 单模型,需在 Moonshot 控制台单独订阅)" }
         "xiaomi"     = @{ Name="xiaomi-token-plan"; Desc="Token Plan(智能路由,需在小米 MiMo 控制台单独订阅)" }
     }
     if (-not $planMap.ContainsKey($Base.Name)) { return $Base }
@@ -314,6 +328,15 @@ function Select-Model {
     $models = $script:ModelMap[$ProviderInfo.Name]
     if (-not $models -or $models.Count -eq 0) {
         return (Read-Required -Prompt "  请输入 Model ID")
+    }
+
+    # 只有 1 个模型时自动选中,跳过菜单(用于 kimi-for-coding 这类单模型 Plan)
+    if ($models.Count -eq 1) {
+        $only = $models[0]
+        Write-Host ""
+        Write-Info "默认模型自动选中: $($only["Label"]) [$($only["Id"])]"
+        Write-Host ""
+        return $only["Id"]
     }
 
     Write-Host ""
