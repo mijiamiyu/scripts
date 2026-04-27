@@ -1,12 +1,12 @@
 # OpenClaw 中文模型配置与切换脚本 (Windows)
 # 在线使用:
-#   irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.ps1 | iex
+#   irm https://gitee.com/mijiamiyu/scripts/raw/main/change-openclaw-model.ps1 | iex
 #
 # 直接设置:
 #   $env:OPENCLAW_PROVIDER='qwen'
 #   $env:OPENCLAW_API_KEY='sk-xxx'
 #   $env:OPENCLAW_MODEL='qwen3.6-flash'
-#   irm https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.ps1 | iex
+#   irm https://gitee.com/mijiamiyu/scripts/raw/main/change-openclaw-model.ps1 | iex
 
 param(
     [string]$Provider = $env:OPENCLAW_PROVIDER,
@@ -43,6 +43,29 @@ function Write-Ok   { param($Msg) Write-Host "  [OK]   " -ForegroundColor Green 
 function Write-Warn { param($Msg) Write-Host "  [WARN] " -ForegroundColor Yellow -NoNewline; Write-Host $Msg }
 function Write-Err  { param($Msg) Write-Host "  [FAIL] " -ForegroundColor Red -NoNewline; Write-Host $Msg }
 function Write-Step { param($Msg) Write-Host "`n━━━ $Msg ━━━`n" -ForegroundColor Cyan }
+
+# 上下文 token 数格式化为 K/M(K=1024, M=1024*1024 整除时)
+function Format-ContextWindow {
+    param([int]$Value)
+    if ($Value -le 0) { return "" }
+    if (($Value -ge 1048576) -and ($Value % 1048576 -eq 0)) { return "$([math]::Floor($Value / 1048576))M" }
+    if (($Value -ge 1024) -and ($Value % 1024 -eq 0)) { return "$([math]::Floor($Value / 1024))K" }
+    return "$Value"
+}
+
+# 支持 b 返回的输入(空 = 重新输入,b = 返回 __BACK__)
+function Read-InputWithBack {
+    param([string]$Prompt, [string]$Value = "")
+    if ($Value) { return $Value }
+    while ($true) {
+        $input = (Read-Host $Prompt).Trim()
+        switch -Regex ($input) {
+            "^(b|B|back)$" { return "__BACK__" }
+            "^$" { Write-Warn "不能为空,请重新输入(或输入 b 返回上一步)" }
+            default { return $input }
+        }
+    }
+}
 
 function Get-OpenClawCommand {
     foreach ($name in @("openclaw", "openclaw.cmd", "openclaw.ps1")) {
@@ -130,24 +153,28 @@ function New-Model {
     }
 }
 
+# Key 为空字符串("")表示主菜单不显示——这些是子计费方式,
+# 用户先选 volcengine/qwen,再二级菜单升级到 ark-coding / qwen-token-plan
 $script:Providers = @(
-    @{ Key="1";  Name="deepseek";  Label="DeepSeek";        Mode="custom"; BaseUrl="https://api.deepseek.com"; Compatibility="openai"; Portal="https://platform.deepseek.com/" },
-    @{ Key="2";  Name="minimax";   Label="MiniMax";         Mode="custom"; BaseUrl="https://api.minimax.io/v1"; Compatibility="openai"; Portal="https://platform.minimaxi.com/subscribe/token-plan" },
-    @{ Key="3";  Name="qwen";      Label="阿里百炼 / Qwen";  Mode="custom"; BaseUrl="https://dashscope.aliyuncs.com/compatible-mode/v1"; Compatibility="openai"; Portal="https://bailian.console.aliyun.com/" },
-    @{ Key="4";  Name="volcengine";Label="火山方舟 / Doubao";Mode="custom"; BaseUrl="https://ark.cn-beijing.volces.com/api/coding/v3"; Compatibility="openai"; Portal="https://console.volcengine.com/ark/" },
-    @{ Key="5";  Name="zai";       Label="智谱 / BigModel";  Mode="custom"; BaseUrl="https://open.bigmodel.cn/api/paas/v4"; Compatibility="openai"; Portal="https://open.bigmodel.cn/" },
-    @{ Key="6";  Name="moonshot";  Label="Moonshot / Kimi"; Mode="custom"; BaseUrl="https://api.moonshot.ai/v1"; Compatibility="openai"; Portal="https://platform.moonshot.cn/" },
-    @{ Key="7";  Name="qianfan";   Label="百度千帆";         Mode="custom"; BaseUrl="https://qianfan.baidubce.com/v2"; Compatibility="openai"; Portal="https://console.bce.baidu.com/qianfan/" },
-    @{ Key="8";  Name="xiaomi";    Label="小米 MiMo";        Mode="builtin"; AuthChoice="xiaomi-api-key"; KeyFlag="--xiaomi-api-key"; Portal="https://platform.xiaomimimo.com/token-plan" },
-    @{ Key="9";  Name="openai";    Label="OpenAI";          Mode="builtin"; AuthChoice="openai-api-key"; KeyFlag="--openai-api-key"; Portal="https://platform.openai.com/" },
-    @{ Key="10"; Name="anthropic"; Label="Anthropic";       Mode="builtin"; AuthChoice="apiKey"; KeyFlag="--anthropic-api-key"; Portal="https://console.anthropic.com/" },
-    @{ Key="11"; Name="custom";    Label="自定义兼容接口";   Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
+    @{ Key="1";  Name="deepseek";       Label="DeepSeek";              Mode="custom"; BaseUrl="https://api.deepseek.com"; Compatibility="openai"; Portal="https://platform.deepseek.com/" },
+    @{ Key="2";  Name="minimax";        Label="MiniMax";               Mode="custom"; BaseUrl="https://api.minimax.io/v1"; Compatibility="openai"; Portal="https://platform.minimaxi.com/subscribe/token-plan" },
+    @{ Key="3";  Name="qwen";           Label="阿里百炼 / Qwen";        Mode="custom"; BaseUrl="https://dashscope.aliyuncs.com/compatible-mode/v1"; Compatibility="openai"; Portal="https://bailian.console.aliyun.com/" },
+    @{ Key="4";  Name="volcengine";     Label="火山方舟 / Doubao";      Mode="custom"; BaseUrl="https://ark.cn-beijing.volces.com/api/v3"; Compatibility="openai"; Portal="https://console.volcengine.com/ark/" },
+    @{ Key="";   Name="ark-coding";     Label="火山方舟 Coding Plan";   Mode="custom"; BaseUrl="https://ark.cn-beijing.volces.com/api/coding/v3"; Compatibility="openai"; Portal="https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" },
+    @{ Key="";   Name="qwen-token-plan";Label="阿里百炼 Token Plan";    Mode="custom"; BaseUrl="https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"; Compatibility="openai"; Portal="https://bailian.console.aliyun.com/?tab=tokenplan" },
+    @{ Key="5";  Name="zai";            Label="智谱 / BigModel";        Mode="custom"; BaseUrl="https://open.bigmodel.cn/api/paas/v4"; Compatibility="openai"; Portal="https://open.bigmodel.cn/" },
+    @{ Key="6";  Name="moonshot";       Label="Moonshot / Kimi";       Mode="custom"; BaseUrl="https://api.moonshot.ai/v1"; Compatibility="openai"; Portal="https://platform.moonshot.cn/" },
+    @{ Key="7";  Name="qianfan";        Label="百度千帆";               Mode="custom"; BaseUrl="https://qianfan.baidubce.com/v2"; Compatibility="openai"; Portal="https://console.bce.baidu.com/qianfan/" },
+    @{ Key="8";  Name="xiaomi";         Label="小米 MiMo";              Mode="builtin"; AuthChoice="xiaomi-api-key"; KeyFlag="--xiaomi-api-key"; Portal="https://platform.xiaomimimo.com/token-plan" },
+    @{ Key="9";  Name="openai";         Label="OpenAI";                Mode="builtin"; AuthChoice="openai-api-key"; KeyFlag="--openai-api-key"; Portal="https://platform.openai.com/" },
+    @{ Key="10"; Name="anthropic";      Label="Anthropic";             Mode="builtin"; AuthChoice="apiKey"; KeyFlag="--anthropic-api-key"; Portal="https://console.anthropic.com/" },
+    @{ Key="11"; Name="custom";         Label="自定义兼容接口";         Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
 )
 
 $script:ModelMap = @{
     "deepseek" = @(
-        (New-Model "deepseek-v4-pro" "DeepSeek V4 Pro" "文本" "强推理/复杂任务" 1000000 0 "DeepSeek 官方 Hugging Face 模型卡"),
-        (New-Model "deepseek-v4-flash" "DeepSeek V4 Flash" "文本" "高速/低成本" 1000000 0 "DeepSeek 官方 Hugging Face 模型卡"),
+        (New-Model "deepseek-v4-pro" "DeepSeek V4 Pro" "文本" "强推理/复杂任务" 1048576 0 "DeepSeek 官方 Hugging Face 模型卡"),
+        (New-Model "deepseek-v4-flash" "DeepSeek V4 Flash" "文本" "高速/低成本" 1048576 0 "DeepSeek 官方 Hugging Face 模型卡"),
         (New-Model "deepseek-chat" "DeepSeek Chat" "文本" "旧别名，2026-07-24 弃用"),
         (New-Model "deepseek-reasoner" "DeepSeek Reasoner" "文本" "旧别名，2026-07-24 弃用")
     )
@@ -158,12 +185,12 @@ $script:ModelMap = @{
         (New-Model "MiniMax-M2.5-highspeed" "MiniMax M2.5 Highspeed" "文本" "旧一代高速版" 204800 0 "MiniMax 官方 API Overview")
     )
     "qwen" = @(
-        (New-Model "qwen3.6-plus" "Qwen3.6 Plus" "文本/图片" "1M 上下文，主推" 1000000 0 "阿里云官方新闻稿/Model Studio 文档"),
-        (New-Model "qwen3.6-flash" "Qwen3.6 Flash" "文本/图片" "1M 上下文，低成本" 1000000 0 "用户确认，待阿里云精确 Model ID 文档同步"),
+        (New-Model "qwen3.6-plus" "Qwen3.6 Plus" "文本/图片" "1M 上下文，主推" 1048576 0 "阿里云官方新闻稿/Model Studio 文档"),
+        (New-Model "qwen3.6-flash" "Qwen3.6 Flash" "文本/图片" "1M 上下文，低成本" 1048576 0 "用户确认，待阿里云精确 Model ID 文档同步"),
         (New-Model "qwen3.6-max-preview" "Qwen3.6 Max Preview" "文本" "256K 上下文，最高推理能力" 262144 0 "按 Qwen3 Max 系列官方上下文配置"),
         (New-Model "qwen3-max" "Qwen3 Max" "文本/图片" "256K 上下文，稳定版" 262144 0 "阿里云 Model Studio 官方模型列表"),
-        (New-Model "qwen3.5-plus" "Qwen3.5 Plus" "文本/图片" "1M 上下文" 1000000 0 "阿里云 Model Studio 官方模型列表"),
-        (New-Model "qwen3.5-flash" "Qwen3.5 Flash" "文本/图片" "1M 上下文" 1000000 0 "阿里云 Model Studio 官方模型列表")
+        (New-Model "qwen3.5-plus" "Qwen3.5 Plus" "文本/图片" "1M 上下文" 1048576 0 "阿里云 Model Studio 官方模型列表"),
+        (New-Model "qwen3.5-flash" "Qwen3.5 Flash" "文本/图片" "1M 上下文" 1048576 0 "阿里云 Model Studio 官方模型列表")
     )
     "volcengine" = @(
         (New-Model "doubao-seed-2.0-code" "Doubao Seed 2.0 Code" "文本/图片" "编程/前端/Agent"),
@@ -173,8 +200,26 @@ $script:ModelMap = @{
         (New-Model "doubao-seed-2-0-code-preview-260215" "Doubao Seed 2.0 Code 快照" "文本/图片" "版本化 ID"),
         (New-Model "doubao-seed-2-0-pro-260215" "Doubao Seed 2.0 Pro 快照" "文本/图片" "版本化 ID"),
         (New-Model "doubao-seed-2-0-lite-260215" "Doubao Seed 2.0 Lite 快照" "文本/图片" "版本化 ID"),
-        (New-Model "doubao-seed-2-0-mini-260215" "Doubao Seed 2.0 Mini 快照" "文本/图片" "版本化 ID"),
-        (New-Model "ark-code-latest" "Ark Code Latest" "文本" "由方舟控制台选择模型")
+        (New-Model "doubao-seed-2-0-mini-260215" "Doubao Seed 2.0 Mini 快照" "文本/图片" "版本化 ID")
+    )
+    "ark-coding" = @(
+        (New-Model "ark-code-latest" "Ark Code Latest" "文本/图片" "Auto 模式：按效果+速度智能路由（推荐）" 256000 0 "250K"),
+        (New-Model "doubao-seed-code" "Doubao Seed Code" "文本/图片" "Doubao 编程主推" 262144 0 "256K"),
+        (New-Model "doubao-seed-2.0-code" "Doubao Seed 2.0 Code" "文本/图片" "2.0 代编程版" 262144 0 "256K"),
+        (New-Model "doubao-seed-2.0-pro" "Doubao Seed 2.0 Pro" "文本/图片" "强推理" 262144 0 "256K"),
+        (New-Model "doubao-seed-2.0-lite" "Doubao Seed 2.0 Lite" "文本/图片" "通用性价比" 262144 0 "256K"),
+        (New-Model "kimi-k2.6" "Kimi K2.6" "文本" "Moonshot 最新" 262144 0 "256K"),
+        (New-Model "kimi-k2.5" "Kimi K2.5" "文本" "Moonshot 上一代" 262144 0 "256K"),
+        (New-Model "deepseek-v3.2" "DeepSeek V3.2" "文本" "DeepSeek 通过 Coding Plan 路由" 131072 0 "128K"),
+        (New-Model "minimax-m2.7" "MiniMax M2.7" "文本" "MiniMax 通过 Coding Plan 路由" 204800 0 "200K"),
+        (New-Model "glm-5.1" "GLM-5.1" "文本" "智谱通过 Coding Plan 路由" 204800 0 "200K"),
+        (New-Model "glm-4.7" "GLM-4.7" "文本" "智谱旧版" 204800 0 "200K")
+    )
+    "qwen-token-plan" = @(
+        (New-Model "qwen3.6-plus" "Qwen3.6 Plus" "文本/图片" "阿里百炼 Token Plan 主推" 1048576 0 "用户提供 1M"),
+        (New-Model "glm-5" "GLM-5" "文本" "智谱通过 Token Plan 路由" 202752 0 "用户提供"),
+        (New-Model "MiniMax-M2.5" "MiniMax M2.5" "文本" "MiniMax 通过 Token Plan 路由" 196608 0 "用户提供"),
+        (New-Model "deepseek-v3.2" "DeepSeek V3.2" "文本" "DeepSeek 通过 Token Plan 路由" 163840 0 "用户提供")
     )
     "zai" = @(
         (New-Model "glm-5.1" "GLM-5.1" "文本" "当前快速开始默认模型"),
@@ -216,13 +261,20 @@ $script:ModelMap = @{
 function Select-Provider {
     if ($Provider) {
         $matched = $script:Providers | Where-Object { $_.Name -eq $Provider -or $_.Key -eq $Provider } | Select-Object -First 1
-        if ($matched) { return $matched }
+        if ($matched) {
+            return (Get-PlanUpgrade -Base $matched)
+        }
         Write-Warn "未识别的厂商: $Provider，将进入交互选择"
     }
 
     Write-Host "  请选择 AI 厂商:" -ForegroundColor Cyan
     Write-Host ""
+    $visibleMax = 0
     foreach ($p in $script:Providers) {
+        # 跳过 Key 为空的子计费方式(主菜单不显示)
+        if (-not $p.Key) { continue }
+        $keyInt = 0
+        if ([int]::TryParse($p.Key, [ref]$keyInt) -and $keyInt -gt $visibleMax) { $visibleMax = $keyInt }
         $baseText = if ($p.BaseUrl) { " | API: $($p.BaseUrl)" } else { "" }
         $portalText = if ($p.Portal) { " | 官网: $($p.Portal)" } else { "" }
         Write-Host ("  {0,2}) {1,-10} - {2}{3}{4}" -f $p.Key, $p.Name, $p.Label, $baseText, $portalText)
@@ -230,9 +282,33 @@ function Select-Provider {
     Write-Host "   0) 仅切换模型 / 跳过厂商配置"
     Write-Host ""
 
-    $choice = (Read-Host "  请输入编号 [0-11]").Trim()
+    $choice = (Read-Host "  请输入编号 [0-$visibleMax]").Trim()
     if ($choice -eq "0") { return $null }
-    return ($script:Providers | Where-Object { $_.Key -eq $choice -or $_.Name -eq $choice } | Select-Object -First 1)
+    $picked = $script:Providers | Where-Object { ($_.Key -and $_.Key -eq $choice) -or $_.Name -eq $choice } | Select-Object -First 1
+    if (-not $picked) { return $null }
+    return (Get-PlanUpgrade -Base $picked)
+}
+
+# 二级菜单:volcengine→Coding Plan, qwen→Token Plan
+function Get-PlanUpgrade {
+    param([hashtable]$Base)
+    $planMap = @{
+        "volcengine" = @{ Name="ark-coding"; Desc="Coding Plan(智能路由,需在火山方舟控制台单独订阅)" }
+        "qwen"       = @{ Name="qwen-token-plan"; Desc="Token Plan(智能路由,需在阿里百炼控制台单独订阅)" }
+    }
+    if (-not $planMap.ContainsKey($Base.Name)) { return $Base }
+
+    $plan = $planMap[$Base.Name]
+    Write-Host ""
+    Write-Host "  $($Base.Label) 还支持订阅计费方式(可选):" -ForegroundColor Cyan
+    Write-Host "   1) 标准按量付费(默认,普通 API Key 即可)"
+    Write-Host "   2) $($plan.Desc)"
+    $planChoice = (Read-Host "  请选择 [1/2,直接回车=1]").Trim()
+    if ($planChoice -eq "2") {
+        $upgraded = $script:Providers | Where-Object { $_.Name -eq $plan.Name } | Select-Object -First 1
+        if ($upgraded) { return $upgraded }
+    }
+    return $Base
 }
 
 function Select-Model {
@@ -255,14 +331,16 @@ function Select-Model {
         $m = $models[$i]
         $note = if ($m["Note"]) { "，$($m["Note"])" } else { "" }
         $inputLabel = if ($m["Input"]) { "[$($m["Input"])]" } else { "" }
-        $ctxLabel = if ($m["ContextWindow"] -gt 0) { " | 上下文: $($m["ContextWindow"])" } else { "" }
-        $outLabel = if ($m["MaxTokens"] -gt 0) { " | 输出: $($m["MaxTokens"])" } else { "" }
-        Write-Host ("  {0,2}) {1}  {2}  {3}{4}{5}{6}" -f ($i + 1), $m["Label"], $inputLabel, $m["Id"], $ctxLabel, $outLabel, $note)
+        $ctxText = Format-ContextWindow -Value $m["ContextWindow"]
+        $idWithCtx = if ($ctxText) { "$($m["Id"]) ($ctxText)" } else { $m["Id"] }
+        Write-Host ("  {0,2}) {1}  {2}  {3}{4}" -f ($i + 1), $m["Label"], $inputLabel, $idWithCtx, $note)
     }
     Write-Host "   0) 手动输入 Model ID"
+    Write-Host "   b) 返回上一步(重选厂商)"
     Write-Host ""
 
-    $choice = (Read-Host "  请选择 [0-$($models.Count)]").Trim()
+    $choice = (Read-Host "  请选择 [0-$($models.Count) / b]").Trim()
+    if ($choice -match "^(b|B|back)$") { return "__BACK__" }
     if ($choice -eq "0") {
         return (Read-Required -Prompt "  请输入自定义 Model ID")
     }
@@ -445,11 +523,10 @@ function Apply-CustomModelMetadata {
 }
 
 function Configure-Provider {
-    param([hashtable]$ProviderInfo, [string]$SelectedModel)
+    param([hashtable]$ProviderInfo, [string]$SelectedModel, [string]$ApiKeyValue)
     if (-not $ProviderInfo) { return }
 
-    Write-Step "配置 $($ProviderInfo.Label)"
-    $key = Read-Required -Prompt "  请输入 API Key" -Value $ApiKey
+    $key = $ApiKeyValue
 
     if ($ProviderInfo.Mode -eq "builtin") {
         $onboardArgs = @(
@@ -546,13 +623,53 @@ if ($gatewayWasRunning) {
 }
 
 $providerInfo = $null
+$selectedModel = ""
+$apiKeyInput = ""
+
+# 状态机:provider → model → apikey,任一步输入 b 都能返回上一步
 if ($Provider -or $ApiKey -or $BaseUrl -or -not $Model) {
-    $providerInfo = Select-Provider
+    $flowState = "provider"
+    while ($flowState -ne "configured") {
+        switch ($flowState) {
+            "provider" {
+                $providerInfo = Select-Provider
+                $flowState = "model"
+            }
+            "model" {
+                $sel = if ($Model) { $Model.Trim() } else { Select-Model -ProviderInfo $providerInfo }
+                if ($sel -eq "__BACK__") {
+                    # 清掉环境变量,让 Select-Provider 重新显示菜单
+                    $Provider = ""
+                    $flowState = "provider"
+                } else {
+                    $selectedModel = $sel
+                    if ($providerInfo) {
+                        $flowState = "apikey"
+                    } else {
+                        $flowState = "configured"
+                    }
+                }
+            }
+            "apikey" {
+                Write-Step "配置 $($providerInfo.Label)"
+                $apiKeyInput = Read-InputWithBack -Prompt "  请输入 API Key (输入 b 返回上一步)" -Value $ApiKey
+                if ($apiKeyInput -eq "__BACK__") {
+                    # 清掉环境变量,让 Select-Model 重新显示菜单
+                    $Model = ""
+                    $selectedModel = ""
+                    $flowState = "model"
+                } else {
+                    $flowState = "configured"
+                }
+            }
+        }
+    }
+} else {
+    $selectedModel = $Model.Trim()
 }
-$selectedModel = if ($Model) { $Model.Trim() } else { Select-Model -ProviderInfo $providerInfo }
 
 if ($providerInfo) {
-    Configure-Provider -ProviderInfo $providerInfo -SelectedModel $selectedModel
+    Configure-Provider -ProviderInfo $providerInfo -SelectedModel $selectedModel -ApiKeyValue $apiKeyInput
 }
 
 if ($selectedModel -and (-not $providerInfo -or $providerInfo.Mode -ne "custom")) {
