@@ -44,7 +44,7 @@ OpenClaw 中文模型配置与切换脚本
   curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.sh | bash
 
 参数:
-  --provider <name>       厂商: deepseek/minimax/qwen/volcengine/ark-coding/qwen-token-plan/zai/moonshot/xiaomi/openai/anthropic/custom
+  --provider <name>       厂商: deepseek/minimax/qwen/volcengine/ark-coding/qwen-token-plan/zai/moonshot/xiaomi/openai/custom
   --api-key <key>         API Key
   --model <id>            直接指定 Model ID
   --base-url <url>        自定义 Base URL
@@ -77,14 +77,14 @@ done
 
 # provider_keys 中空字符串表示"主菜单不显示"——这些是子计费方式,
 # 用户先选 volcengine/qwen,再二级菜单升级到 ark-coding / qwen-token-plan
-provider_keys=(1 2 3 4 "" "" 5 6 7 8 9 10)
-provider_names=(deepseek minimax qwen volcengine ark-coding qwen-token-plan zai moonshot xiaomi openai anthropic custom)
-provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao" "火山方舟 Coding Plan" "阿里百炼 Token Plan" "智谱 / BigModel" "Moonshot / Kimi" "小米 MiMo" "OpenAI" "Anthropic" "自定义兼容接口")
-provider_modes=(custom custom custom custom custom custom custom custom builtin builtin builtin custom)
-provider_base_urls=("https://api.deepseek.com" "https://api.minimaxi.com/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "" "" "" "")
-provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" "https://bailian.console.aliyun.com/?tab=tokenplan" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://platform.xiaomimimo.com/token-plan" "https://platform.openai.com/" "https://console.anthropic.com/" "")
-provider_auth=("" "" "" "" "" "" "" "" "xiaomi-api-key" "openai-api-key" "apiKey" "")
-provider_keyflag=("" "" "" "" "" "" "" "" "--xiaomi-api-key" "--openai-api-key" "--anthropic-api-key" "")
+provider_keys=(1 2 3 4 "" "" 5 6 7 8 9)
+provider_names=(deepseek minimax qwen volcengine ark-coding qwen-token-plan zai moonshot xiaomi openai custom)
+provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao" "火山方舟 Coding Plan" "阿里百炼 Token Plan" "智谱 / BigModel" "Moonshot / Kimi" "小米 MiMo" "OpenAI" "自定义兼容接口")
+provider_modes=(custom custom custom custom custom custom custom custom custom custom custom)
+provider_base_urls=("https://api.deepseek.com" "https://api.minimaxi.com/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "https://api.xiaomimimo.com/v1" "https://api.openai.com/v1" "")
+provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" "https://bailian.console.aliyun.com/?tab=tokenplan" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://platform.xiaomimimo.com/token-plan" "https://platform.openai.com/" "")
+provider_auth=("" "" "" "" "" "" "" "" "" "" "")
+provider_keyflag=("" "" "" "" "" "" "" "" "" "" "")
 
 # 把上下文 token 数格式化成人类可读的 K/M 标签(K=1024,M=1024*1024)
 # 仅在能整除时才用 K/M,否则直接输出原始数字
@@ -398,12 +398,6 @@ models_for_provider() {
         "openai/o3|o3|文本/图片|200K 上下文，推理模型|200000|0|" \
         "openai/o3-pro|o3 Pro|文本/图片|200K 上下文，推理增强|200000|0|" \
         "openai/o4-mini|o4 Mini|文本/图片|200K 上下文，轻量推理|200000|0|" ;;
-    anthropic)
-      printf '%s\n' \
-        "anthropic/claude-opus-4-7|Claude Opus 4.7|文本/图片|1M 上下文，最强通用/推理/编码|1000000|0|" \
-        "anthropic/claude-sonnet-4-6|Claude Sonnet 4.6|文本/图片|1M 上下文，平衡型主力模型|1000000|0|" \
-        "anthropic/claude-haiku-4-5|Claude Haiku 4.5|文本/图片|200K 上下文，快速低价模型|200000|0|" \
-        "anthropic/claude-haiku-4-5-20251001|Claude Haiku 4.5 (固定版)|文本/图片|200K 上下文，固定快照版|200000|0|" ;;
   esac
 }
 
