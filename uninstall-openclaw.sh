@@ -129,6 +129,44 @@ remove_global_package() {
     fi
   fi
   [[ $removed -eq 0 ]] && info "未在 pnpm / npm 全局列表中发现 openclaw（可能已被卸载）"
+
+  # 兜底：扫常见 bin 路径下残留的 openclaw 二进制（npm/pnpm 卸载未必能清干净
+  # 比如之前手动 cp、HOMEBREW link、custom node 安装目录里的孤立软链）
+  hash -r 2>/dev/null || true
+  local stray_bins=()
+  local prefix
+  if command -v npm >/dev/null 2>&1; then
+    prefix=$(npm config get prefix 2>/dev/null || true)
+    [[ -n "$prefix" && -e "$prefix/bin/openclaw" ]] && stray_bins+=("$prefix/bin/openclaw")
+  fi
+  if command -v pnpm >/dev/null 2>&1; then
+    local pnpm_root
+    pnpm_root=$(pnpm root -g 2>/dev/null || true)
+    if [[ -n "$pnpm_root" ]]; then
+      local pnpm_prefix="${pnpm_root%/lib/node_modules}"
+      [[ -n "$pnpm_prefix" && -e "$pnpm_prefix/bin/openclaw" ]] && stray_bins+=("$pnpm_prefix/bin/openclaw")
+    fi
+  fi
+  # 当前 PATH 里还能找到的 openclaw
+  local current
+  current=$(command -v openclaw 2>/dev/null || true)
+  [[ -n "$current" && -e "$current" ]] && stray_bins+=("$current")
+
+  if [[ ${#stray_bins[@]} -gt 0 ]]; then
+    local b seen=":"
+    for b in "${stray_bins[@]}"; do
+      case "$seen" in *":$b:"*) continue ;; esac
+      seen="${seen}${b}:"
+      if rm -f "$b" 2>/dev/null; then
+        success "已清理残留 bin: $b"
+      elif sudo rm -f "$b" 2>/dev/null; then
+        success "已清理残留 bin (sudo): $b"
+      else
+        warn "无法删除残留 bin: $b（可能需要手动处理）"
+      fi
+    done
+    hash -r 2>/dev/null || true
+  fi
 }
 
 remove_user_data() {
@@ -191,6 +229,7 @@ clear_env_vars() {
 
 verify_cleanup() {
   step "验证清理结果"
+  hash -r 2>/dev/null || true
   local issues=0
 
   if pnpm list -g 2>/dev/null | grep -q openclaw; then
