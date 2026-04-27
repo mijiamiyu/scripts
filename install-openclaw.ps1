@@ -1159,7 +1159,7 @@ function Step-Verify {
 function Step-Onboard {
     Write-Step "步骤 7/7: 配置 OpenClaw"
 
-    $scriptUrl = "https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.ps1"
+    $scriptUrl = "https://gitee.com/mijiamiyu/scripts/raw/main/change-openclaw-model.ps1"
     Write-Info "正在加载中文模型配置脚本: $scriptUrl"
 
     try {
