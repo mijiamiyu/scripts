@@ -165,7 +165,9 @@ $script:Providers = @(
     @{ Key="5";  Name="zai";            Label="智谱 / BigModel";        Mode="custom"; BaseUrl="https://open.bigmodel.cn/api/paas/v4"; Compatibility="openai"; Portal="https://open.bigmodel.cn/" },
     @{ Key="6";  Name="moonshot";       Label="Moonshot / Kimi";       Mode="custom"; BaseUrl="https://api.moonshot.ai/v1"; Compatibility="openai"; Portal="https://platform.moonshot.cn/" },
     @{ Key="7";  Name="xiaomi";         Label="小米 MiMo";              Mode="builtin"; AuthChoice="xiaomi-api-key"; KeyFlag="--xiaomi-api-key"; Portal="https://platform.xiaomimimo.com/token-plan" },
-    @{ Key="8";  Name="custom";         Label="自定义兼容接口";         Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
+    @{ Key="8";  Name="openai";         Label="OpenAI";                Mode="builtin"; AuthChoice="openai-api-key"; KeyFlag="--openai-api-key"; Portal="https://platform.openai.com/" },
+    @{ Key="9";  Name="anthropic";      Label="Anthropic";             Mode="builtin"; AuthChoice="apiKey"; KeyFlag="--anthropic-api-key"; Portal="https://console.anthropic.com/" },
+    @{ Key="10"; Name="custom";         Label="自定义兼容接口";         Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
 )
 
 $script:ModelMap = @{
@@ -228,6 +230,33 @@ $script:ModelMap = @{
         (New-Model "xiaomi/mimo-v2.5" "MiMo V2.5" "文本/图片" "1M 上下文，通用" 1048576 0 ""),
         (New-Model "xiaomi/mimo-v2-pro" "MiMo V2 Pro" "文本/图片" "1M 上下文，旧版强推理" 1048576 0 ""),
         (New-Model "xiaomi/mimo-v2-flash" "MiMo V2 Flash" "文本/图片" "128K 上下文，轻量高速" 131072 0 "")
+    )
+    "openai" = @(
+        (New-Model "openai/gpt-5.5" "GPT-5.5" "文本/图片" "1.05M 上下文" 1050000 0 ""),
+        (New-Model "openai/gpt-5.5-pro" "GPT-5.5 Pro" "文本/图片" "1.05M 上下文" 1050000 0 ""),
+        (New-Model "openai/gpt-5.4" "GPT-5.4" "文本/图片" "1.05M 上下文" 1050000 0 ""),
+        (New-Model "openai/gpt-5.4-pro" "GPT-5.4 Pro" "文本/图片" "1.05M 上下文" 1050000 0 ""),
+        (New-Model "openai/gpt-5.4-mini" "GPT-5.4 Mini" "文本/图片" "400K 上下文，轻量" 400000 0 ""),
+        (New-Model "openai/gpt-5.4-nano" "GPT-5.4 Nano" "文本/图片" "400K 上下文，最轻量" 400000 0 ""),
+        (New-Model "openai/gpt-5.2" "GPT-5.2" "文本/图片" "400K 上下文" 400000 0 ""),
+        (New-Model "openai/gpt-5.1" "GPT-5.1" "文本/图片" "400K 上下文" 400000 0 ""),
+        (New-Model "openai/gpt-5" "GPT-5" "文本/图片" "400K 上下文" 400000 0 ""),
+        (New-Model "openai/gpt-5-mini" "GPT-5 Mini" "文本/图片" "400K 上下文" 400000 0 ""),
+        (New-Model "openai/gpt-5-nano" "GPT-5 Nano" "文本/图片" "400K 上下文" 400000 0 ""),
+        (New-Model "openai/gpt-4.1" "GPT-4.1" "文本/图片" "1M 上下文" 1047576 0 ""),
+        (New-Model "openai/gpt-4.1-mini" "GPT-4.1 Mini" "文本/图片" "1M 上下文" 1047576 0 ""),
+        (New-Model "openai/gpt-4.1-nano" "GPT-4.1 Nano" "文本/图片" "1M 上下文" 1047576 0 ""),
+        (New-Model "openai/gpt-4o" "GPT-4o" "文本/图片" "128K 上下文" 128000 0 ""),
+        (New-Model "openai/gpt-4o-mini" "GPT-4o Mini" "文本/图片" "128K 上下文" 128000 0 ""),
+        (New-Model "openai/o3" "o3" "文本/图片" "200K 上下文，推理模型" 200000 0 ""),
+        (New-Model "openai/o3-pro" "o3 Pro" "文本/图片" "200K 上下文，推理增强" 200000 0 ""),
+        (New-Model "openai/o4-mini" "o4 Mini" "文本/图片" "200K 上下文，轻量推理" 200000 0 "")
+    )
+    "anthropic" = @(
+        (New-Model "anthropic/claude-opus-4-7" "Claude Opus 4.7" "文本/图片" "1M 上下文，最强通用/推理/编码" 1000000 0 ""),
+        (New-Model "anthropic/claude-sonnet-4-6" "Claude Sonnet 4.6" "文本/图片" "1M 上下文，平衡型主力模型" 1000000 0 ""),
+        (New-Model "anthropic/claude-haiku-4-5" "Claude Haiku 4.5" "文本/图片" "200K 上下文，快速低价模型" 200000 0 ""),
+        (New-Model "anthropic/claude-haiku-4-5-20251001" "Claude Haiku 4.5 (固定版)" "文本/图片" "200K 上下文，固定快照版" 200000 0 "")
     )
 }
 
