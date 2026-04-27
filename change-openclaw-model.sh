@@ -5,11 +5,14 @@ set -Eeuo pipefail
 # 在线使用:
 #   curl -fsSL https://gitee.com/mijiamiyu/scripts/raw/main/change-openclaw-model.sh | bash
 
-# 兜底:通过 curl|bash 调用时 stdin 是脚本内容管道,所有 read 会吃掉剩余脚本字节
-# 导致 bash 解析器后续报 "syntax error near unexpected token"。把 stdin 接到
-# /dev/tty 确保所有交互 read 从终端读取,不污染脚本流。
+# 兜底:通过 curl|bash 调用时 stdin 是脚本内容管道,read 默认从 stdin 读会
+# 吃掉 bash 还没解析的脚本字节,导致后续报 "syntax error near unexpected token"。
+# 解法:新开 fd 3 指向 /dev/tty,所有交互 read 显式用 <&3 从终端读,不污染 stdin。
+# 不能 exec </dev/tty,那会把脚本自身的输入流也接到终端,bash 反而卡在等用户敲完脚本。
 if [[ ! -t 0 && -e /dev/tty ]]; then
-  exec </dev/tty
+  exec 3</dev/tty
+else
+  exec 3<&0
 fi
 
 PROVIDER="${OPENCLAW_PROVIDER:-}"
@@ -87,7 +90,7 @@ read_required() {
   fi
   while true; do
     printf '%s' "$prompt" >&2
-    read -r value
+    read -r value <&3
     if [[ -n "$value" ]]; then
       printf '%s\n' "$value"
       return
@@ -129,7 +132,7 @@ select_provider() {
   done
   printf '   0) 仅切换模型 / 跳过厂商配置\n\n' >&2
   printf '  请输入编号 [0-11]: ' >&2
-  read -r choice
+  read -r choice <&3
   if [[ "$choice" == "0" ]]; then
     printf '\n'
     return
@@ -257,7 +260,7 @@ read_optional_token_size() {
       return 0
     fi
     printf '%s' "$prompt" >&2
-    read -r value
+    read -r value <&3
     if [[ -z "$value" ]]; then
       printf '0\n'
       return 0
@@ -443,7 +446,7 @@ select_model() {
   done
   printf '   0) 手动输入 Model ID\n\n' >&2
   printf '  请选择 [0-%d]: ' "${#models[@]}" >&2
-  read -r choice
+  read -r choice <&3
   if [[ "$choice" == "0" ]]; then
     read_required "  请输入自定义 Model ID: "
     return
