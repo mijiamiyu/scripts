@@ -86,6 +86,22 @@ provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.co
 provider_auth=("" "" "" "" "" "" "" "" "" "xiaomi-api-key" "openai-api-key" "apiKey" "")
 provider_keyflag=("" "" "" "" "" "" "" "" "" "--xiaomi-api-key" "--openai-api-key" "--anthropic-api-key" "")
 
+# 把上下文 token 数格式化成人类可读的 K/M 标签(K=1024,M=1024*1024)
+# 仅在能整除时才用 K/M,否则直接输出原始数字
+fmt_ctx() {
+  local n="$1"
+  if [[ -z "$n" || "$n" == "0" ]]; then
+    return
+  fi
+  if (( n >= 1048576 )) && (( n % 1048576 == 0 )); then
+    printf '%dM' "$((n / 1048576))"
+  elif (( n >= 1024 )) && (( n % 1024 == 0 )); then
+    printf '%dK' "$((n / 1024))"
+  else
+    printf '%d' "$n"
+  fi
+}
+
 read_required() {
   local prompt="$1"
   local value="${2:-}"
@@ -213,8 +229,8 @@ models_for_provider() {
   case "$1" in
     deepseek)
       printf '%s\n' \
-        "deepseek-v4-pro|DeepSeek V4 Pro|文本|强推理/复杂任务|1000000|0|DeepSeek 官方 Hugging Face 模型卡" \
-        "deepseek-v4-flash|DeepSeek V4 Flash|文本|高速/低成本|1000000|0|DeepSeek 官方 Hugging Face 模型卡" \
+        "deepseek-v4-pro|DeepSeek V4 Pro|文本|强推理/复杂任务|1048576|0|DeepSeek 官方 Hugging Face 模型卡" \
+        "deepseek-v4-flash|DeepSeek V4 Flash|文本|高速/低成本|1048576|0|DeepSeek 官方 Hugging Face 模型卡" \
         "deepseek-chat|DeepSeek Chat|文本|旧别名，2026-07-24 弃用|0|0|" \
         "deepseek-reasoner|DeepSeek Reasoner|文本|旧别名，2026-07-24 弃用|0|0|" ;;
     minimax)
@@ -225,12 +241,12 @@ models_for_provider() {
         "MiniMax-M2.5-highspeed|MiniMax M2.5 Highspeed|文本|旧一代高速版|204800|0|MiniMax 官方 API Overview" ;;
     qwen)
       printf '%s\n' \
-        "qwen3.6-plus|Qwen3.6 Plus|文本/图片|1M 上下文，主推|1000000|0|阿里云官方新闻稿/Model Studio 文档" \
-        "qwen3.6-flash|Qwen3.6 Flash|文本/图片|1M 上下文，低成本|1000000|0|用户确认，待阿里云精确 Model ID 文档同步" \
+        "qwen3.6-plus|Qwen3.6 Plus|文本/图片|1M 上下文，主推|1048576|0|阿里云官方新闻稿/Model Studio 文档" \
+        "qwen3.6-flash|Qwen3.6 Flash|文本/图片|1M 上下文，低成本|1048576|0|用户确认，待阿里云精确 Model ID 文档同步" \
         "qwen3.6-max-preview|Qwen3.6 Max Preview|文本|256K 上下文，最高推理能力|262144|0|按 Qwen3 Max 系列官方上下文配置" \
         "qwen3-max|Qwen3 Max|文本/图片|256K 上下文，稳定版|262144|0|阿里云 Model Studio 官方模型列表" \
-        "qwen3.5-plus|Qwen3.5 Plus|文本/图片|1M 上下文|1000000|0|阿里云 Model Studio 官方模型列表" \
-        "qwen3.5-flash|Qwen3.5 Flash|文本/图片|1M 上下文|1000000|0|阿里云 Model Studio 官方模型列表" ;;
+        "qwen3.5-plus|Qwen3.5 Plus|文本/图片|1M 上下文|1048576|0|阿里云 Model Studio 官方模型列表" \
+        "qwen3.5-flash|Qwen3.5 Flash|文本/图片|1M 上下文|1048576|0|阿里云 Model Studio 官方模型列表" ;;
     volcengine)
       printf '%s\n' \
         "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|编程/前端/Agent" \
@@ -244,7 +260,7 @@ models_for_provider() {
     ark-coding)
       # 上下文窗口:K=1024 换算(minimax 给定 204800 = 200*1024,正好对应 200K)
       printf '%s\n' \
-        "ark-code-latest|Ark Code Latest|文本/图片|Auto 模式：按效果+速度智能路由（推荐）|0|0|" \
+        "ark-code-latest|Ark Code Latest|文本/图片|Auto 模式：按效果+速度智能路由（推荐）|256000|0|250K" \
         "doubao-seed-code|Doubao Seed Code|文本/图片|Doubao 编程主推|262144|0|256K" \
         "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|2.0 代编程版|262144|0|256K" \
         "doubao-seed-2.0-pro|Doubao Seed 2.0 Pro|文本/图片|强推理|262144|0|256K" \
@@ -257,7 +273,7 @@ models_for_provider() {
         "glm-4.7|GLM-4.7|文本|智谱旧版|204800|0|200K" ;;
     qwen-token-plan)
       printf '%s\n' \
-        "qwen3.6-plus|Qwen3.6 Plus|文本/图片|阿里百炼 Token Plan 主推|1000000|0|用户提供" \
+        "qwen3.6-plus|Qwen3.6 Plus|文本/图片|阿里百炼 Token Plan 主推|1048576|0|用户提供" \
         "glm-5|GLM-5|文本|智谱通过 Token Plan 路由|202752|0|用户提供" \
         "MiniMax-M2.5|MiniMax M2.5|文本|MiniMax 通过 Token Plan 路由|196608|0|用户提供" \
         "deepseek-v3.2|DeepSeek V3.2|文本|DeepSeek 通过 Token Plan 路由|163840|0|用户提供" ;;
@@ -522,15 +538,17 @@ select_model() {
   fi
 
   printf '\n  请选择默认模型:\n\n' >&2
-  local i entry id label input note context max_tokens source ctx_label out_label
+  local i entry id label input note context max_tokens source ctx_text id_with_ctx
   for i in "${!models[@]}"; do
     entry="${models[$i]}"
     IFS='|' read -r id label input note context max_tokens source <<< "$entry"
-    ctx_label=""
-    out_label=""
-    [[ "${context:-0}" != "0" ]] && ctx_label=" | 上下文: $context"
-    [[ "${max_tokens:-0}" != "0" ]] && out_label=" | 输出: $max_tokens"
-    printf '  %2d) %s  [%s]  %s%s%s，%s\n' "$((i + 1))" "$label" "$input" "$id" "$ctx_label" "$out_label" "$note" >&2
+    ctx_text="$(fmt_ctx "${context:-0}")"
+    if [[ -n "$ctx_text" ]]; then
+      id_with_ctx="${id} (${ctx_text})"
+    else
+      id_with_ctx="$id"
+    fi
+    printf '  %2d) %s  [%s]  %s，%s\n' "$((i + 1))" "$label" "$input" "$id_with_ctx" "$note" >&2
   done
   printf '   0) 手动输入 Model ID\n' >&2
   printf '   b) 返回上一步(重选厂商)\n\n' >&2
