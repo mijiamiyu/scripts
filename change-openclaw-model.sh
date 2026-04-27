@@ -3,7 +3,14 @@ set -Eeuo pipefail
 
 # OpenClaw 中文模型配置与切换脚本 (macOS/Linux)
 # 在线使用:
-#   curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.sh | bash
+#   curl -fsSL https://gitee.com/mijiamiyu/scripts/raw/main/change-openclaw-model.sh | bash
+
+# 兜底:通过 curl|bash 调用时 stdin 是脚本内容管道,所有 read 会吃掉剩余脚本字节
+# 导致 bash 解析器后续报 "syntax error near unexpected token"。把 stdin 接到
+# /dev/tty 确保所有交互 read 从终端读取,不污染脚本流。
+if [[ ! -t 0 && -e /dev/tty ]]; then
+  exec </dev/tty
+fi
 
 PROVIDER="${OPENCLAW_PROVIDER:-}"
 API_KEY="${OPENCLAW_API_KEY:-}"
