@@ -333,7 +333,7 @@ function Invoke-SubscriptionFlow {
         ) -AllowFailure
         if ($rc -ne 0) {
             Write-Err "skip-auth onboard 失败,无法继续订阅配置流程"
-            exit 1
+            throw "skip-auth onboard 失败 (exit code $rc)"
         }
         Write-Ok "基础环境就绪"
         Write-Host ""
@@ -346,7 +346,7 @@ function Invoke-SubscriptionFlow {
     & $script:OpenClawCmd configure --section model
     if ($LASTEXITCODE -ne 0) {
         Write-Err "openclaw configure 失败,退出码: $LASTEXITCODE"
-        exit $LASTEXITCODE
+        throw "openclaw configure 失败 (exit code $LASTEXITCODE)"
     }
 
     Write-Host ""
@@ -722,7 +722,8 @@ if ($Provider -or $ApiKey -or $BaseUrl -or -not $Model) {
                 # 订阅 OAuth 路径:不走后续 model/apikey 状态机,直接交给 openclaw configure
                 if ($providerInfo -and $providerInfo.SubscriptionFlow) {
                     Invoke-SubscriptionFlow
-                    exit 0
+                    $flowState = "configured"
+                    break
                 }
                 $flowState = "model"
             }
