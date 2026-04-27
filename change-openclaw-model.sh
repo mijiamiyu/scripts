@@ -252,31 +252,27 @@ models_for_provider() {
         "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|编程/前端/Agent" \
         "doubao-seed-2.0-pro|Doubao Seed 2.0 Pro|文本/图片|强推理/复杂任务" \
         "doubao-seed-2.0-lite|Doubao Seed 2.0 Lite|文本/图片|通用性价比" \
-        "doubao-seed-2.0-mini|Doubao Seed 2.0 Mini|文本/图片|低延迟/高并发/低成本" \
-        "doubao-seed-2-0-code-preview-260215|Doubao Seed 2.0 Code 快照|文本/图片|版本化 ID" \
-        "doubao-seed-2-0-pro-260215|Doubao Seed 2.0 Pro 快照|文本/图片|版本化 ID" \
-        "doubao-seed-2-0-lite-260215|Doubao Seed 2.0 Lite 快照|文本/图片|版本化 ID" \
-        "doubao-seed-2-0-mini-260215|Doubao Seed 2.0 Mini 快照|文本/图片|版本化 ID" ;;
+        "doubao-seed-2.0-mini|Doubao Seed 2.0 Mini|文本/图片|低延迟/高并发/低成本" ;;
     ark-coding)
-      # 上下文窗口:K=1024 换算(minimax 给定 204800 = 200*1024,正好对应 200K)
+      # 上下文写在 note 里(K=1024 换算),不再额外用括号显示
       printf '%s\n' \
-        "ark-code-latest|Ark Code Latest|文本/图片|Auto 模式：按效果+速度智能路由（推荐）|256000|0|250K" \
-        "doubao-seed-code|Doubao Seed Code|文本/图片|Doubao 编程主推|262144|0|256K" \
-        "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|2.0 代编程版|262144|0|256K" \
-        "doubao-seed-2.0-pro|Doubao Seed 2.0 Pro|文本/图片|强推理|262144|0|256K" \
-        "doubao-seed-2.0-lite|Doubao Seed 2.0 Lite|文本/图片|通用性价比|262144|0|256K" \
-        "kimi-k2.6|Kimi K2.6|文本|Moonshot 最新|262144|0|256K" \
-        "kimi-k2.5|Kimi K2.5|文本|Moonshot 上一代|262144|0|256K" \
-        "deepseek-v3.2|DeepSeek V3.2|文本|DeepSeek 通过 Coding Plan 路由|131072|0|128K" \
-        "minimax-m2.7|MiniMax M2.7|文本|MiniMax 通过 Coding Plan 路由|204800|0|200K" \
-        "glm-5.1|GLM-5.1|文本|智谱通过 Coding Plan 路由|204800|0|200K" \
-        "glm-4.7|GLM-4.7|文本|智谱旧版|204800|0|200K" ;;
+        "ark-code-latest|Ark Code Latest|文本/图片|250K 上下文，Auto 模式：按效果+速度智能路由（推荐）|256000|0|" \
+        "doubao-seed-code|Doubao Seed Code|文本/图片|256K 上下文，Doubao 编程主推|262144|0|" \
+        "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|256K 上下文，2.0 代编程版|262144|0|" \
+        "doubao-seed-2.0-pro|Doubao Seed 2.0 Pro|文本/图片|256K 上下文，强推理|262144|0|" \
+        "doubao-seed-2.0-lite|Doubao Seed 2.0 Lite|文本/图片|256K 上下文，通用性价比|262144|0|" \
+        "kimi-k2.6|Kimi K2.6|文本|256K 上下文，Moonshot 最新|262144|0|" \
+        "kimi-k2.5|Kimi K2.5|文本|256K 上下文，Moonshot 上一代|262144|0|" \
+        "deepseek-v3.2|DeepSeek V3.2|文本|128K 上下文，DeepSeek 通过 Coding Plan 路由|131072|0|" \
+        "minimax-m2.7|MiniMax M2.7|文本|200K 上下文，MiniMax 通过 Coding Plan 路由|204800|0|" \
+        "glm-5.1|GLM-5.1|文本|200K 上下文，智谱通过 Coding Plan 路由|204800|0|" \
+        "glm-4.7|GLM-4.7|文本|200K 上下文，智谱旧版|204800|0|" ;;
     qwen-token-plan)
       printf '%s\n' \
-        "qwen3.6-plus|Qwen3.6 Plus|文本/图片|阿里百炼 Token Plan 主推|1048576|0|用户提供" \
-        "glm-5|GLM-5|文本|智谱通过 Token Plan 路由|202752|0|用户提供" \
-        "MiniMax-M2.5|MiniMax M2.5|文本|MiniMax 通过 Token Plan 路由|196608|0|用户提供" \
-        "deepseek-v3.2|DeepSeek V3.2|文本|DeepSeek 通过 Token Plan 路由|163840|0|用户提供" ;;
+        "qwen3.6-plus|Qwen3.6 Plus|文本/图片|1M 上下文，阿里百炼 Token Plan 主推|1048576|0|" \
+        "glm-5|GLM-5|文本|198K 上下文，智谱通过 Token Plan 路由|202752|0|" \
+        "MiniMax-M2.5|MiniMax M2.5|文本|192K 上下文，MiniMax 通过 Token Plan 路由|196608|0|" \
+        "deepseek-v3.2|DeepSeek V3.2|文本|160K 上下文，DeepSeek 通过 Token Plan 路由|163840|0|" ;;
     zai)
       printf '%s\n' \
         "glm-5.1|GLM-5.1|文本|当前快速开始默认模型" \
@@ -538,17 +534,11 @@ select_model() {
   fi
 
   printf '\n  请选择默认模型:\n\n' >&2
-  local i entry id label input note context max_tokens source ctx_text id_with_ctx
+  local i entry id label input note context max_tokens source
   for i in "${!models[@]}"; do
     entry="${models[$i]}"
     IFS='|' read -r id label input note context max_tokens source <<< "$entry"
-    ctx_text="$(fmt_ctx "${context:-0}")"
-    if [[ -n "$ctx_text" ]]; then
-      id_with_ctx="${id} (${ctx_text})"
-    else
-      id_with_ctx="$id"
-    fi
-    printf '  %2d) %s  [%s]  %s，%s\n' "$((i + 1))" "$label" "$input" "$id_with_ctx" "$note" >&2
+    printf '  %2d) %s  [%s]  %s，%s\n' "$((i + 1))" "$label" "$input" "$id" "$note" >&2
   done
   printf '   0) 手动输入 Model ID\n' >&2
   printf '   b) 返回上一步(重选厂商)\n\n' >&2

@@ -196,30 +196,26 @@ $script:ModelMap = @{
         (New-Model "doubao-seed-2.0-code" "Doubao Seed 2.0 Code" "文本/图片" "编程/前端/Agent"),
         (New-Model "doubao-seed-2.0-pro" "Doubao Seed 2.0 Pro" "文本/图片" "强推理/复杂任务"),
         (New-Model "doubao-seed-2.0-lite" "Doubao Seed 2.0 Lite" "文本/图片" "通用性价比"),
-        (New-Model "doubao-seed-2.0-mini" "Doubao Seed 2.0 Mini" "文本/图片" "低延迟/高并发/低成本"),
-        (New-Model "doubao-seed-2-0-code-preview-260215" "Doubao Seed 2.0 Code 快照" "文本/图片" "版本化 ID"),
-        (New-Model "doubao-seed-2-0-pro-260215" "Doubao Seed 2.0 Pro 快照" "文本/图片" "版本化 ID"),
-        (New-Model "doubao-seed-2-0-lite-260215" "Doubao Seed 2.0 Lite 快照" "文本/图片" "版本化 ID"),
-        (New-Model "doubao-seed-2-0-mini-260215" "Doubao Seed 2.0 Mini 快照" "文本/图片" "版本化 ID")
+        (New-Model "doubao-seed-2.0-mini" "Doubao Seed 2.0 Mini" "文本/图片" "低延迟/高并发/低成本")
     )
     "ark-coding" = @(
-        (New-Model "ark-code-latest" "Ark Code Latest" "文本/图片" "Auto 模式：按效果+速度智能路由（推荐）" 256000 0 "250K"),
-        (New-Model "doubao-seed-code" "Doubao Seed Code" "文本/图片" "Doubao 编程主推" 262144 0 "256K"),
-        (New-Model "doubao-seed-2.0-code" "Doubao Seed 2.0 Code" "文本/图片" "2.0 代编程版" 262144 0 "256K"),
-        (New-Model "doubao-seed-2.0-pro" "Doubao Seed 2.0 Pro" "文本/图片" "强推理" 262144 0 "256K"),
-        (New-Model "doubao-seed-2.0-lite" "Doubao Seed 2.0 Lite" "文本/图片" "通用性价比" 262144 0 "256K"),
-        (New-Model "kimi-k2.6" "Kimi K2.6" "文本" "Moonshot 最新" 262144 0 "256K"),
-        (New-Model "kimi-k2.5" "Kimi K2.5" "文本" "Moonshot 上一代" 262144 0 "256K"),
-        (New-Model "deepseek-v3.2" "DeepSeek V3.2" "文本" "DeepSeek 通过 Coding Plan 路由" 131072 0 "128K"),
-        (New-Model "minimax-m2.7" "MiniMax M2.7" "文本" "MiniMax 通过 Coding Plan 路由" 204800 0 "200K"),
-        (New-Model "glm-5.1" "GLM-5.1" "文本" "智谱通过 Coding Plan 路由" 204800 0 "200K"),
-        (New-Model "glm-4.7" "GLM-4.7" "文本" "智谱旧版" 204800 0 "200K")
+        (New-Model "ark-code-latest" "Ark Code Latest" "文本/图片" "250K 上下文，Auto 模式：按效果+速度智能路由（推荐）" 256000 0 ""),
+        (New-Model "doubao-seed-code" "Doubao Seed Code" "文本/图片" "256K 上下文，Doubao 编程主推" 262144 0 ""),
+        (New-Model "doubao-seed-2.0-code" "Doubao Seed 2.0 Code" "文本/图片" "256K 上下文，2.0 代编程版" 262144 0 ""),
+        (New-Model "doubao-seed-2.0-pro" "Doubao Seed 2.0 Pro" "文本/图片" "256K 上下文，强推理" 262144 0 ""),
+        (New-Model "doubao-seed-2.0-lite" "Doubao Seed 2.0 Lite" "文本/图片" "256K 上下文，通用性价比" 262144 0 ""),
+        (New-Model "kimi-k2.6" "Kimi K2.6" "文本" "256K 上下文，Moonshot 最新" 262144 0 ""),
+        (New-Model "kimi-k2.5" "Kimi K2.5" "文本" "256K 上下文，Moonshot 上一代" 262144 0 ""),
+        (New-Model "deepseek-v3.2" "DeepSeek V3.2" "文本" "128K 上下文，DeepSeek 通过 Coding Plan 路由" 131072 0 ""),
+        (New-Model "minimax-m2.7" "MiniMax M2.7" "文本" "200K 上下文，MiniMax 通过 Coding Plan 路由" 204800 0 ""),
+        (New-Model "glm-5.1" "GLM-5.1" "文本" "200K 上下文，智谱通过 Coding Plan 路由" 204800 0 ""),
+        (New-Model "glm-4.7" "GLM-4.7" "文本" "200K 上下文，智谱旧版" 204800 0 "")
     )
     "qwen-token-plan" = @(
-        (New-Model "qwen3.6-plus" "Qwen3.6 Plus" "文本/图片" "阿里百炼 Token Plan 主推" 1048576 0 "用户提供 1M"),
-        (New-Model "glm-5" "GLM-5" "文本" "智谱通过 Token Plan 路由" 202752 0 "用户提供"),
-        (New-Model "MiniMax-M2.5" "MiniMax M2.5" "文本" "MiniMax 通过 Token Plan 路由" 196608 0 "用户提供"),
-        (New-Model "deepseek-v3.2" "DeepSeek V3.2" "文本" "DeepSeek 通过 Token Plan 路由" 163840 0 "用户提供")
+        (New-Model "qwen3.6-plus" "Qwen3.6 Plus" "文本/图片" "1M 上下文，阿里百炼 Token Plan 主推" 1048576 0 ""),
+        (New-Model "glm-5" "GLM-5" "文本" "198K 上下文，智谱通过 Token Plan 路由" 202752 0 ""),
+        (New-Model "MiniMax-M2.5" "MiniMax M2.5" "文本" "192K 上下文，MiniMax 通过 Token Plan 路由" 196608 0 ""),
+        (New-Model "deepseek-v3.2" "DeepSeek V3.2" "文本" "160K 上下文，DeepSeek 通过 Token Plan 路由" 163840 0 "")
     )
     "zai" = @(
         (New-Model "glm-5.1" "GLM-5.1" "文本" "当前快速开始默认模型"),
@@ -331,9 +327,7 @@ function Select-Model {
         $m = $models[$i]
         $note = if ($m["Note"]) { "，$($m["Note"])" } else { "" }
         $inputLabel = if ($m["Input"]) { "[$($m["Input"])]" } else { "" }
-        $ctxText = Format-ContextWindow -Value $m["ContextWindow"]
-        $idWithCtx = if ($ctxText) { "$($m["Id"]) ($ctxText)" } else { $m["Id"] }
-        Write-Host ("  {0,2}) {1}  {2}  {3}{4}" -f ($i + 1), $m["Label"], $inputLabel, $idWithCtx, $note)
+        Write-Host ("  {0,2}) {1}  {2}  {3}{4}" -f ($i + 1), $m["Label"], $inputLabel, $m["Id"], $note)
     }
     Write-Host "   0) 手动输入 Model ID"
     Write-Host "   b) 返回上一步(重选厂商)"
