@@ -1214,6 +1214,17 @@ function Main {
             Step-Onboard | Out-Null
             return
         }
+        # 已装但指定了不同版本:询问是否重装
+        Write-Warn "检测到 OpenClaw $existingVer 已安装，本次指定版本为 v$($script:OpenClawVersion)"
+        $confirm = (Read-Host "  确认要重装为 v$($script:OpenClawVersion) 吗? [y/N]").Trim()
+        if ($confirm -notmatch "^[Yy]") {
+            Write-Info "已取消重装，直接进入模型配置..."
+            if ($found) { Add-ToUserPath $found.Dir }
+            Ensure-ExecutionPolicy
+            Step-Onboard | Out-Null
+            return
+        }
+        Write-Info "继续重装为 v$($script:OpenClawVersion)..."
     }
 
     if (-not (Step-CheckNode))       { Write-Host "`n按任意键退出..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown"); return }

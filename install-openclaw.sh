@@ -721,6 +721,17 @@ main() {
       step_onboard
       return 0
     fi
+    # 已装但指定了不同版本:询问是否重装
+    warn "检测到 OpenClaw $existing_ver 已安装，本次指定版本为 v$OPENCLAW_VERSION"
+    local confirm
+    prompt_read confirm "确认要重装为 v$OPENCLAW_VERSION 吗? [y/N]: "
+    if [[ ! "$confirm" =~ ^[Yy] ]]; then
+      info "已取消重装，直接进入模型配置..."
+      echo ""
+      step_onboard
+      return 0
+    fi
+    info "继续重装为 v$OPENCLAW_VERSION..."
   fi
 
   step_check_node || exit 1
