@@ -552,7 +552,7 @@ if [[ -n "$provider_idx" ]]; then
   fi
   print_info "正在配置 OpenClaw..."
   set +e
-  openclaw "${onboard_args[@]}"
+  openclaw "${onboard_args[@]}" </dev/null
   onboard_rc=$?
   set -e
   if [[ "$onboard_rc" -ne 0 ]]; then
@@ -573,7 +573,7 @@ fi
 
 if [[ -n "$selected_model" && ( -z "$provider_idx" || "${provider_modes[$provider_idx]}" != "custom" ) ]]; then
   print_info "正在设置默认模型: $selected_model"
-  openclaw models set "$selected_model"
+  openclaw models set "$selected_model" </dev/null
   print_ok "默认模型已设置"
 elif [[ -n "$selected_model" && -n "$provider_idx" && "${provider_modes[$provider_idx]}" == "custom" ]]; then
   print_ok "Custom 模型已由 openclaw onboard 写入: $selected_model"
@@ -581,13 +581,13 @@ fi
 
 printf '\n'
 print_info "当前模型状态:"
-openclaw models status --plain || true
+openclaw models status --plain </dev/null || true
 
 if [[ "$RESTART_GATEWAY" -eq 1 || ( "$GATEWAY_WAS_RUNNING" -eq 1 && "$RESTART_GATEWAY" -ne -1 ) ]]; then
   printf '\n'
   print_info "正在重启 OpenClaw Gateway..."
-  openclaw gateway restart
-  openclaw gateway probe || true
+  openclaw gateway restart </dev/null
+  openclaw gateway probe </dev/null || true
 fi
 
 printf '\n'
