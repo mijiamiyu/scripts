@@ -164,7 +164,8 @@ $script:Providers = @(
     @{ Key="";   Name="qwen-token-plan";Label="阿里百炼 Token Plan";    Mode="custom"; BaseUrl="https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"; Compatibility="openai"; Portal="https://bailian.console.aliyun.com/?tab=tokenplan" },
     @{ Key="5";  Name="zai";            Label="智谱 / BigModel";        Mode="custom"; BaseUrl="https://open.bigmodel.cn/api/paas/v4"; Compatibility="openai"; Portal="https://open.bigmodel.cn/" },
     @{ Key="6";  Name="moonshot";       Label="Moonshot / Kimi";       Mode="custom"; BaseUrl="https://api.moonshot.ai/v1"; Compatibility="openai"; Portal="https://platform.moonshot.cn/" },
-    @{ Key="7";  Name="xiaomi";         Label="小米 MiMo";              Mode="custom"; BaseUrl="https://api.xiaomimimo.com/v1"; Compatibility="openai"; Portal="https://platform.xiaomimimo.com/token-plan" },
+    @{ Key="7";  Name="xiaomi";         Label="小米 MiMo";              Mode="custom"; BaseUrl="https://api.xiaomimimo.com/v1"; Compatibility="openai"; Portal="https://platform.xiaomimimo.com/" },
+    @{ Key="";   Name="xiaomi-token-plan"; Label="小米 MiMo Token Plan"; Mode="custom"; BaseUrl="https://token-plan-cn.xiaomimimo.com/v1"; Compatibility="openai"; Portal="https://platform.xiaomimimo.com/token-plan" },
     @{ Key="8";  Name="custom";         Label="自定义兼容接口";         Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
 )
 
@@ -229,6 +230,12 @@ $script:ModelMap = @{
         (New-Model "xiaomi/mimo-v2-pro" "MiMo V2 Pro" "文本/图片" "1M 上下文，旧版强推理" 1048576 0 ""),
         (New-Model "xiaomi/mimo-v2-flash" "MiMo V2 Flash" "文本/图片" "128K 上下文，轻量高速" 131072 0 "")
     )
+    "xiaomi-token-plan" = @(
+        (New-Model "xiaomi/mimo-v2.5-pro" "MiMo V2.5 Pro" "文本/图片" "1M 上下文，Token Plan 路由" 1048576 0 ""),
+        (New-Model "xiaomi/mimo-v2.5" "MiMo V2.5" "文本/图片" "1M 上下文，Token Plan 路由" 1048576 0 ""),
+        (New-Model "xiaomi/mimo-v2-pro" "MiMo V2 Pro" "文本/图片" "1M 上下文，Token Plan 路由" 1048576 0 ""),
+        (New-Model "xiaomi/mimo-v2-flash" "MiMo V2 Flash" "文本/图片" "128K 上下文，Token Plan 路由" 131072 0 "")
+    )
 }
 
 function Select-Provider {
@@ -265,12 +272,13 @@ function Select-Provider {
     }
 }
 
-# 二级菜单:volcengine→Coding Plan, qwen→Token Plan
+# 二级菜单:volcengine→Coding Plan, qwen→Token Plan, xiaomi→Token Plan
 function Get-PlanUpgrade {
     param([hashtable]$Base)
     $planMap = @{
         "volcengine" = @{ Name="ark-coding"; Desc="Coding Plan(智能路由,需在火山方舟控制台单独订阅)" }
         "qwen"       = @{ Name="qwen-token-plan"; Desc="Token Plan(智能路由,需在阿里百炼控制台单独订阅)" }
+        "xiaomi"     = @{ Name="xiaomi-token-plan"; Desc="Token Plan(智能路由,需在小米 MiMo 控制台单独订阅)" }
     }
     if (-not $planMap.ContainsKey($Base.Name)) { return $Base }
 
