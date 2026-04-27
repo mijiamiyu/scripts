@@ -165,9 +165,7 @@ $script:Providers = @(
     @{ Key="5";  Name="zai";            Label="智谱 / BigModel";        Mode="custom"; BaseUrl="https://open.bigmodel.cn/api/paas/v4"; Compatibility="openai"; Portal="https://open.bigmodel.cn/" },
     @{ Key="6";  Name="moonshot";       Label="Moonshot / Kimi";       Mode="custom"; BaseUrl="https://api.moonshot.ai/v1"; Compatibility="openai"; Portal="https://platform.moonshot.cn/" },
     @{ Key="7";  Name="xiaomi";         Label="小米 MiMo";              Mode="builtin"; AuthChoice="xiaomi-api-key"; KeyFlag="--xiaomi-api-key"; Portal="https://platform.xiaomimimo.com/token-plan" },
-    @{ Key="8";  Name="openai";         Label="OpenAI";                Mode="builtin"; AuthChoice="openai-api-key"; KeyFlag="--openai-api-key"; Portal="https://platform.openai.com/" },
-    @{ Key="9";  Name="anthropic";      Label="Anthropic";             Mode="builtin"; AuthChoice="apiKey"; KeyFlag="--anthropic-api-key"; Portal="https://console.anthropic.com/" },
-    @{ Key="10"; Name="custom";         Label="自定义兼容接口";         Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
+    @{ Key="8";  Name="custom";         Label="自定义兼容接口";         Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
 )
 
 $script:ModelMap = @{
@@ -230,18 +228,6 @@ $script:ModelMap = @{
         (New-Model "xiaomi/mimo-v2.5" "MiMo V2.5" "文本/图片" "1M 上下文，通用" 1048576 0 ""),
         (New-Model "xiaomi/mimo-v2-pro" "MiMo V2 Pro" "文本/图片" "1M 上下文，旧版强推理" 1048576 0 ""),
         (New-Model "xiaomi/mimo-v2-flash" "MiMo V2 Flash" "文本/图片" "128K 上下文，轻量高速" 131072 0 "")
-    )
-    "openai" = @(
-        (New-Model "openai/gpt-5.4" "GPT-5.4" "文本/图片" "256K 上下文，主力模型" 262144 0 ""),
-        (New-Model "openai/gpt-5.4-mini" "GPT-5.4 Mini" "文本/图片" "128K 上下文，轻量模型" 131072 0 ""),
-        (New-Model "openai/gpt-5.3-codex" "GPT-5.3 Codex" "文本" "256K 上下文，代码模型" 262144 0 ""),
-        (New-Model "openai/o3" "o3" "文本/图片" "200K 上下文，推理模型" 204800 0 "")
-    )
-    "anthropic" = @(
-        (New-Model "anthropic/claude-opus-4-6" "Claude Opus 4.6" "文本/图片" "200K 上下文，最强推理" 204800 0 ""),
-        (New-Model "anthropic/claude-sonnet-4-6" "Claude Sonnet 4.6" "文本/图片" "200K 上下文，均衡" 204800 0 ""),
-        (New-Model "anthropic/claude-opus-4-5" "Claude Opus 4.5" "文本/图片" "200K 上下文，旧版" 204800 0 ""),
-        (New-Model "anthropic/claude-sonnet-4-5" "Claude Sonnet 4.5" "文本/图片" "200K 上下文，旧版" 204800 0 "")
     )
 }
 

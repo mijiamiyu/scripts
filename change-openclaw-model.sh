@@ -44,7 +44,7 @@ OpenClaw 中文模型配置与切换脚本
   curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.sh | bash
 
 参数:
-  --provider <name>       厂商: deepseek/minimax/qwen/volcengine/ark-coding/zai/moonshot/qianfan/xiaomi/openai/anthropic/custom
+  --provider <name>       厂商: deepseek/minimax/qwen/volcengine/ark-coding/qwen-token-plan/zai/moonshot/xiaomi/custom
   --api-key <key>         API Key
   --model <id>            直接指定 Model ID
   --base-url <url>        自定义 Base URL
@@ -77,14 +77,14 @@ done
 
 # provider_keys 中空字符串表示"主菜单不显示"——这些是子计费方式,
 # 用户先选 volcengine/qwen,再二级菜单升级到 ark-coding / qwen-token-plan
-provider_keys=(1 2 3 4 "" "" 5 6 7 8 9 10)
-provider_names=(deepseek minimax qwen volcengine ark-coding qwen-token-plan zai moonshot xiaomi openai anthropic custom)
-provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao" "火山方舟 Coding Plan" "阿里百炼 Token Plan" "智谱 / BigModel" "Moonshot / Kimi" "小米 MiMo" "OpenAI" "Anthropic" "自定义兼容接口")
-provider_modes=(custom custom custom custom custom custom custom custom builtin builtin builtin custom)
-provider_base_urls=("https://api.deepseek.com" "https://api.minimax.io/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "" "" "" "")
-provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" "https://bailian.console.aliyun.com/?tab=tokenplan" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://platform.xiaomimimo.com/token-plan" "https://platform.openai.com/" "https://console.anthropic.com/" "")
-provider_auth=("" "" "" "" "" "" "" "" "xiaomi-api-key" "openai-api-key" "apiKey" "")
-provider_keyflag=("" "" "" "" "" "" "" "" "--xiaomi-api-key" "--openai-api-key" "--anthropic-api-key" "")
+provider_keys=(1 2 3 4 "" "" 5 6 7 8)
+provider_names=(deepseek minimax qwen volcengine ark-coding qwen-token-plan zai moonshot xiaomi custom)
+provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao" "火山方舟 Coding Plan" "阿里百炼 Token Plan" "智谱 / BigModel" "Moonshot / Kimi" "小米 MiMo" "自定义兼容接口")
+provider_modes=(custom custom custom custom custom custom custom custom builtin custom)
+provider_base_urls=("https://api.deepseek.com" "https://api.minimax.io/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "" "")
+provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" "https://bailian.console.aliyun.com/?tab=tokenplan" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://platform.xiaomimimo.com/token-plan" "")
+provider_auth=("" "" "" "" "" "" "" "" "xiaomi-api-key" "")
+provider_keyflag=("" "" "" "" "" "" "" "" "--xiaomi-api-key" "")
 
 # 把上下文 token 数格式化成人类可读的 K/M 标签(K=1024,M=1024*1024)
 # 仅在能整除时才用 K/M,否则直接输出原始数字
@@ -304,20 +304,6 @@ models_for_provider() {
         "xiaomi/mimo-v2.5|MiMo V2.5|文本/图片|1M 上下文，通用|1048576|0|" \
         "xiaomi/mimo-v2-pro|MiMo V2 Pro|文本/图片|1M 上下文，旧版强推理|1048576|0|" \
         "xiaomi/mimo-v2-flash|MiMo V2 Flash|文本/图片|128K 上下文，轻量高速|131072|0|" ;;
-    openai)
-      # 上下文按 OpenAI 公开文档(GPT-5 系 256K, o3 系 200K),K=1024 换算
-      printf '%s\n' \
-        "openai/gpt-5.4|GPT-5.4|文本/图片|256K 上下文，主力模型|262144|0|" \
-        "openai/gpt-5.4-mini|GPT-5.4 Mini|文本/图片|128K 上下文，轻量模型|131072|0|" \
-        "openai/gpt-5.3-codex|GPT-5.3 Codex|文本|256K 上下文，代码模型|262144|0|" \
-        "openai/o3|o3|文本/图片|200K 上下文，推理模型|204800|0|" ;;
-    anthropic)
-      # Claude 4 系列默认 200K(开 1M context 需要 beta header,这里取默认)
-      printf '%s\n' \
-        "anthropic/claude-opus-4-6|Claude Opus 4.6|文本/图片|200K 上下文，最强推理|204800|0|" \
-        "anthropic/claude-sonnet-4-6|Claude Sonnet 4.6|文本/图片|200K 上下文，均衡|204800|0|" \
-        "anthropic/claude-opus-4-5|Claude Opus 4.5|文本/图片|200K 上下文，旧版|204800|0|" \
-        "anthropic/claude-sonnet-4-5|Claude Sonnet 4.5|文本/图片|200K 上下文，旧版|204800|0|" ;;
   esac
 }
 
