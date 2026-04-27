@@ -242,19 +242,19 @@ models_for_provider() {
         "doubao-seed-2-0-lite-260215|Doubao Seed 2.0 Lite 快照|文本/图片|版本化 ID" \
         "doubao-seed-2-0-mini-260215|Doubao Seed 2.0 Mini 快照|文本/图片|版本化 ID" ;;
     ark-coding)
-      # 上下文窗口由用户提供(K=1000,minimax 直接给数字 204800)
+      # 上下文窗口:K=1024 换算(minimax 给定 204800 = 200*1024,正好对应 200K)
       printf '%s\n' \
         "ark-code-latest|Ark Code Latest|文本/图片|Auto 模式：按效果+速度智能路由（推荐）|0|0|" \
-        "doubao-seed-code|Doubao Seed Code|文本/图片|Doubao 编程主推|256000|0|用户提供 256K" \
-        "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|2.0 代编程版|256000|0|用户提供 256K" \
-        "doubao-seed-2.0-pro|Doubao Seed 2.0 Pro|文本/图片|强推理|256000|0|用户提供 256K" \
-        "doubao-seed-2.0-lite|Doubao Seed 2.0 Lite|文本/图片|通用性价比|256000|0|用户提供 256K" \
-        "kimi-k2.6|Kimi K2.6|文本|Moonshot 最新|256000|0|用户提供 256K" \
-        "kimi-k2.5|Kimi K2.5|文本|Moonshot 上一代|256000|0|用户提供 256K" \
-        "deepseek-v3.2|DeepSeek V3.2|文本|DeepSeek 通过 Coding Plan 路由|128000|0|用户提供 128K" \
-        "minimax-m2.7|MiniMax M2.7|文本|MiniMax 通过 Coding Plan 路由|204800|0|用户提供 204800" \
-        "glm-5.1|GLM-5.1|文本|智谱通过 Coding Plan 路由|200000|0|用户提供 200K" \
-        "glm-4.7|GLM-4.7|文本|智谱旧版|200000|0|用户提供 200K" ;;
+        "doubao-seed-code|Doubao Seed Code|文本/图片|Doubao 编程主推|262144|0|256K" \
+        "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|2.0 代编程版|262144|0|256K" \
+        "doubao-seed-2.0-pro|Doubao Seed 2.0 Pro|文本/图片|强推理|262144|0|256K" \
+        "doubao-seed-2.0-lite|Doubao Seed 2.0 Lite|文本/图片|通用性价比|262144|0|256K" \
+        "kimi-k2.6|Kimi K2.6|文本|Moonshot 最新|262144|0|256K" \
+        "kimi-k2.5|Kimi K2.5|文本|Moonshot 上一代|262144|0|256K" \
+        "deepseek-v3.2|DeepSeek V3.2|文本|DeepSeek 通过 Coding Plan 路由|131072|0|128K" \
+        "minimax-m2.7|MiniMax M2.7|文本|MiniMax 通过 Coding Plan 路由|204800|0|200K" \
+        "glm-5.1|GLM-5.1|文本|智谱通过 Coding Plan 路由|204800|0|200K" \
+        "glm-4.7|GLM-4.7|文本|智谱旧版|204800|0|200K" ;;
     qwen-token-plan)
       printf '%s\n' \
         "qwen3.6-plus|Qwen3.6 Plus|文本/图片|阿里百炼 Token Plan 主推|1000000|0|用户提供" \
