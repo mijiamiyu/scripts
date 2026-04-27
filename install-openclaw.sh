@@ -645,7 +645,7 @@ step_verify() {
 step_onboard() {
   step "步骤 6/6: 配置 OpenClaw"
 
-  local model_script_url="https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.sh"
+  local model_script_url="https://gitee.com/mijiamiyu/scripts/raw/main/change-openclaw-model.sh"
   info "正在加载中文模型配置脚本: ${model_script_url}"
 
   if curl -fsSL "$model_script_url" | bash; then
