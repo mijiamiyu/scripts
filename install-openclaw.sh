@@ -704,16 +704,23 @@ main() {
   ensure_path
   local existing_ver
   existing_ver=$(openclaw -v 2>/dev/null || true)
-  if [[ -n "$existing_ver" && -z "$OPENCLAW_VERSION" ]]; then
-    success "OpenClaw $existing_ver 已安装，无需重复安装"
-    echo -e "\n${GREEN}🦞 你的龙虾已就位！${NC}\n"
-    echo ""
-    local reconfig
-    prompt_read reconfig "是否要重新配置 OpenClaw? [y/N]: "
-    if [[ "$reconfig" =~ ^[Yy] ]]; then
-      step_onboard
+  if [[ -n "$existing_ver" ]]; then
+    local skip_reinstall=false
+    local skip_msg=""
+    if [[ -z "$OPENCLAW_VERSION" ]]; then
+      skip_reinstall=true
+      skip_msg="已安装"
+    elif [[ "$existing_ver" == "$OPENCLAW_VERSION" || "$existing_ver" == "v$OPENCLAW_VERSION" ]]; then
+      skip_reinstall=true
+      skip_msg="已是指定版本 v$OPENCLAW_VERSION"
     fi
-    return 0
+    if [[ "$skip_reinstall" == "true" ]]; then
+      success "OpenClaw $existing_ver $skip_msg，跳过环境检测，直接进入模型配置"
+      echo -e "\n${GREEN}🦞 你的龙虾已就位！${NC}\n"
+      echo ""
+      step_onboard
+      return 0
+    fi
   fi
 
   step_check_node || exit 1

@@ -1196,16 +1196,24 @@ function Main {
     if (-not $existingVer) {
         try { $existingVer = (& openclaw -v 2>$null).Trim() } catch {}
     }
-    if ($existingVer -and -not $script:OpenClawVersion) {
-        if ($found) { Add-ToUserPath $found.Dir }
-        Ensure-ExecutionPolicy
-        Write-Ok "OpenClaw $existingVer 已安装，无需重复安装"
-        Write-Host "`n  🦞 你的龙虾已就位！`n" -ForegroundColor Green
-        $reconfig = (Read-Host "  是否要重新配置 OpenClaw? [y/N]").Trim()
-        if ($reconfig -match "^[Yy]") {
-            Step-Onboard | Out-Null
+    if ($existingVer) {
+        $skipReinstall = $false
+        $skipMsg = ""
+        if (-not $script:OpenClawVersion) {
+            $skipReinstall = $true
+            $skipMsg = "已安装"
+        } elseif ($existingVer -eq $script:OpenClawVersion -or $existingVer -eq "v$($script:OpenClawVersion)") {
+            $skipReinstall = $true
+            $skipMsg = "已是指定版本 v$($script:OpenClawVersion)"
         }
-        return
+        if ($skipReinstall) {
+            if ($found) { Add-ToUserPath $found.Dir }
+            Ensure-ExecutionPolicy
+            Write-Ok "OpenClaw $existingVer $skipMsg，跳过环境检测，直接进入模型配置"
+            Write-Host "`n  🦞 你的龙虾已就位！`n" -ForegroundColor Green
+            Step-Onboard | Out-Null
+            return
+        }
     }
 
     if (-not (Step-CheckNode))       { Write-Host "`n按任意键退出..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown"); return }
