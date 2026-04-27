@@ -9,7 +9,10 @@ set -Eeuo pipefail
 # 吃掉 bash 还没解析的脚本字节,导致后续报 "syntax error near unexpected token"。
 # 解法:新开 fd 3 指向 /dev/tty,所有交互 read 显式用 <&3 从终端读,不污染 stdin。
 # 不能 exec </dev/tty,那会把脚本自身的输入流也接到终端,bash 反而卡在等用户敲完脚本。
-if [[ ! -t 0 && -e /dev/tty ]]; then
+# 三档兜底:终端 stdin → fd 0;/dev/tty 可开 → /dev/tty;都不行 → fd 0。
+if [[ -t 0 ]]; then
+  exec 3<&0
+elif (exec 3</dev/tty) 2>/dev/null; then
   exec 3</dev/tty
 else
   exec 3<&0
@@ -41,7 +44,7 @@ OpenClaw 中文模型配置与切换脚本
   curl -fsSL https://raw.githubusercontent.com/mijiamiyu/scripts/main/change-openclaw-model.sh | bash
 
 参数:
-  --provider <name>       厂商: deepseek/minimax/qwen/volcengine/zai/moonshot/qianfan/xiaomi/openai/anthropic/custom
+  --provider <name>       厂商: deepseek/minimax/qwen/volcengine/ark-coding/zai/moonshot/qianfan/xiaomi/openai/anthropic/custom
   --api-key <key>         API Key
   --model <id>            直接指定 Model ID
   --base-url <url>        自定义 Base URL
@@ -72,14 +75,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-provider_keys=(1 2 3 4 5 6 7 8 9 10 11)
-provider_names=(deepseek minimax qwen volcengine zai moonshot qianfan xiaomi openai anthropic custom)
-provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao" "智谱 / BigModel" "Moonshot / Kimi" "百度千帆" "小米 MiMo" "OpenAI" "Anthropic" "自定义兼容接口")
-provider_modes=(custom custom custom custom custom custom custom builtin builtin builtin custom)
-provider_base_urls=("https://api.deepseek.com" "https://api.minimax.io/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "https://qianfan.baidubce.com/v2" "" "" "" "")
-provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://console.bce.baidu.com/qianfan/" "https://platform.xiaomimimo.com/token-plan" "https://platform.openai.com/" "https://console.anthropic.com/" "")
-provider_auth=("" "" "" "" "" "" "" "xiaomi-api-key" "openai-api-key" "apiKey" "")
-provider_keyflag=("" "" "" "" "" "" "" "--xiaomi-api-key" "--openai-api-key" "--anthropic-api-key" "")
+provider_keys=(1 2 3 4 5 6 7 8 9 10 11 12)
+provider_names=(deepseek minimax qwen volcengine ark-coding zai moonshot qianfan xiaomi openai anthropic custom)
+provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao（标准 API）" "火山方舟 Coding Plan（需订阅）" "智谱 / BigModel" "Moonshot / Kimi" "百度千帆" "小米 MiMo" "OpenAI" "Anthropic" "自定义兼容接口")
+provider_modes=(custom custom custom custom custom custom custom custom builtin builtin builtin custom)
+provider_base_urls=("https://api.deepseek.com" "https://api.minimax.io/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "https://qianfan.baidubce.com/v2" "" "" "" "")
+provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://console.bce.baidu.com/qianfan/" "https://platform.xiaomimimo.com/token-plan" "https://platform.openai.com/" "https://console.anthropic.com/" "")
+provider_auth=("" "" "" "" "" "" "" "" "xiaomi-api-key" "openai-api-key" "apiKey" "")
+provider_keyflag=("" "" "" "" "" "" "" "" "--xiaomi-api-key" "--openai-api-key" "--anthropic-api-key" "")
 
 read_required() {
   local prompt="$1"
@@ -96,6 +99,33 @@ read_required() {
       return
     fi
     print_warn "不能为空，请重新输入" >&2
+  done
+}
+
+# 支持「输入 b 返回上一步」的 read。空值 = 重新输入,b = 输出 __BACK__ 信号
+read_input_with_back() {
+  local prompt="$1"
+  local value="${2:-}"
+  if [[ -n "$value" ]]; then
+    printf '%s\n' "$value"
+    return
+  fi
+  while true; do
+    printf '%s' "$prompt" >&2
+    read -r value <&3
+    case "$value" in
+      b|B|back)
+        printf '__BACK__\n'
+        return
+        ;;
+      "")
+        print_warn "不能为空,请重新输入(或输入 b 返回上一步)" >&2
+        ;;
+      *)
+        printf '%s\n' "$value"
+        return
+        ;;
+    esac
   done
 }
 
@@ -131,7 +161,8 @@ select_provider() {
     printf '  %2s) %-10s - %s%s%s\n' "${provider_keys[$i]}" "${provider_names[$i]}" "${provider_labels[$i]}" "$base_text" "$portal_text" >&2
   done
   printf '   0) 仅切换模型 / 跳过厂商配置\n\n' >&2
-  printf '  请输入编号 [0-11]: ' >&2
+  # provider_keys=(1 2 3 ... N) 形式,最大编号 = 数组长度。bash 3.2 兼容写法
+  printf '  请输入编号 [0-%d]: ' "${#provider_keys[@]}" >&2
   read -r choice <&3
   if [[ "$choice" == "0" ]]; then
     printf '\n'
@@ -172,6 +203,19 @@ models_for_provider() {
         "doubao-seed-2-0-pro-260215|Doubao Seed 2.0 Pro 快照|文本/图片|版本化 ID" \
         "doubao-seed-2-0-lite-260215|Doubao Seed 2.0 Lite 快照|文本/图片|版本化 ID" \
         "doubao-seed-2-0-mini-260215|Doubao Seed 2.0 Mini 快照|文本/图片|版本化 ID" ;;
+    ark-coding)
+      printf '%s\n' \
+        "ark-code-latest|Ark Code Latest|文本/图片|Auto 模式：按效果+速度智能路由（推荐）" \
+        "doubao-seed-code|Doubao Seed Code|文本/图片|Doubao 编程主推" \
+        "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|2.0 代编程版" \
+        "doubao-seed-2.0-pro|Doubao Seed 2.0 Pro|文本/图片|强推理" \
+        "doubao-seed-2.0-lite|Doubao Seed 2.0 Lite|文本/图片|通用性价比" \
+        "kimi-k2.6|Kimi K2.6|文本|Moonshot 最新" \
+        "kimi-k2.5|Kimi K2.5|文本|Moonshot 上一代" \
+        "deepseek-v3.2|DeepSeek V3.2|文本|DeepSeek 通过 Coding Plan 路由" \
+        "minimax-m2.7|MiniMax M2.7|文本|MiniMax 通过 Coding Plan 路由" \
+        "glm-5.1|GLM-5.1|文本|智谱通过 Coding Plan 路由" \
+        "glm-4.7|GLM-4.7|文本|智谱旧版" ;;
     zai)
       printf '%s\n' \
         "glm-5.1|GLM-5.1|文本|当前快速开始默认模型" \
@@ -443,9 +487,16 @@ select_model() {
     [[ "${max_tokens:-0}" != "0" ]] && out_label=" | 输出: $max_tokens"
     printf '  %2d) %s  [%s]  %s%s%s，%s\n' "$((i + 1))" "$label" "$input" "$id" "$ctx_label" "$out_label" "$note" >&2
   done
-  printf '   0) 手动输入 Model ID\n\n' >&2
-  printf '  请选择 [0-%d]: ' "${#models[@]}" >&2
+  printf '   0) 手动输入 Model ID\n' >&2
+  printf '   b) 返回上一步(重选厂商)\n\n' >&2
+  printf '  请选择 [0-%d / b]: ' "${#models[@]}" >&2
   read -r choice <&3
+  case "$choice" in
+    b|B|back)
+      printf '__BACK__\n'
+      return
+      ;;
+  esac
   if [[ "$choice" == "0" ]]; then
     read_required "  请输入自定义 Model ID: "
     return
@@ -499,19 +550,50 @@ else
   print_warn "Gateway 当前未运行，配置完成后不会主动启动"
 fi
 
-provider_idx="$(select_provider)"
+provider_idx=""
 provider_name=""
 selected_model=""
-if [[ -n "$provider_idx" ]]; then
-  provider_name="${provider_names[$provider_idx]}"
-  selected_model="$(select_model "$provider_name")"
-else
-  selected_model="$(select_model "")"
-fi
+key=""
+
+# 状态机:provider → model → apikey,任一步输入 b 都能返回上一步
+flow_state="provider"
+while [[ "$flow_state" != "configured" ]]; do
+  case "$flow_state" in
+    provider)
+      provider_idx="$(select_provider)"
+      provider_name=""
+      [[ -n "$provider_idx" ]] && provider_name="${provider_names[$provider_idx]}"
+      flow_state="model"
+      ;;
+    model)
+      sel="$(select_model "$provider_name")"
+      if [[ "$sel" == "__BACK__" ]]; then
+        PROVIDER=""    # 清掉环境变量,让 select_provider 重新显示菜单
+        flow_state="provider"
+      else
+        selected_model="$sel"
+        if [[ -n "$provider_idx" ]]; then
+          flow_state="apikey"
+        else
+          flow_state="configured"
+        fi
+      fi
+      ;;
+    apikey)
+      step "配置 ${provider_labels[$provider_idx]}"
+      key="$(read_input_with_back '  请输入 API Key (输入 b 返回上一步): ' "$API_KEY")"
+      if [[ "$key" == "__BACK__" ]]; then
+        MODEL=""    # 清掉环境变量,让 select_model 重新显示菜单
+        selected_model=""
+        flow_state="model"
+      else
+        flow_state="configured"
+      fi
+      ;;
+  esac
+done
 
 if [[ -n "$provider_idx" ]]; then
-  step "配置 ${provider_labels[$provider_idx]}"
-  key="$(read_required '  请输入 API Key: ' "$API_KEY")"
   if [[ "${provider_modes[$provider_idx]}" == "builtin" ]]; then
     onboard_args=(
       onboard --non-interactive
