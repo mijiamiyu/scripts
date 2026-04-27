@@ -263,10 +263,10 @@ models_for_provider() {
         "qwen3.5-flash|Qwen3.5 Flash|文本/图片|1M 上下文|1048576|0|阿里云 Model Studio 官方模型列表" ;;
     volcengine)
       printf '%s\n' \
-        "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|256K 上下文，编程/前端/Agent|262144|0|" \
-        "doubao-seed-2.0-pro|Doubao Seed 2.0 Pro|文本/图片|256K 上下文，强推理/复杂任务|262144|0|" \
-        "doubao-seed-2.0-lite|Doubao Seed 2.0 Lite|文本/图片|256K 上下文，通用性价比|262144|0|" \
-        "doubao-seed-2.0-mini|Doubao Seed 2.0 Mini|文本/图片|256K 上下文，低延迟/高并发/低成本|262144|0|" ;;
+        "doubao-seed-2-0-code-preview-260215|Doubao Seed 2.0 Code|文本/图片|256K 上下文，编程/前端/Agent|262144|0|" \
+        "doubao-seed-2-0-pro-260215|Doubao Seed 2.0 Pro|文本/图片|256K 上下文，强推理/复杂任务|262144|0|" \
+        "doubao-seed-2-0-lite-260215|Doubao Seed 2.0 Lite|文本/图片|256K 上下文，通用性价比|262144|0|" \
+        "doubao-seed-2-0-mini-260215|Doubao Seed 2.0 Mini|文本/图片|256K 上下文，低延迟/高并发/低成本|262144|0|" ;;
     ark-coding)
       # 上下文写在 note 里(K=1024 换算),不再额外用括号显示
       printf '%s\n' \
@@ -290,30 +290,34 @@ models_for_provider() {
     zai)
       printf '%s\n' \
         "glm-5.1|GLM-5.1|文本|200K 上下文，当前快速开始默认模型|204800|0|" \
-        "glm-5|GLM-5|文本|202K 上下文，Agentic Engineering|206848|0|" \
+        "glm-5|GLM-5|文本|200K 上下文，Agentic Engineering|204800|0|" \
         "glm-4.7|GLM-4.7|文本|200K 上下文，Agentic Coding|204800|0|" \
-        "glm-4.7-flash|GLM-4.7 Flash|文本|200K 上下文，轻量版|204800|0|" \
-        "glm-4.7-flashx|GLM-4.7 FlashX|文本|200K 上下文，轻量高速版|204800|0|" \
-        "glm-5v-turbo|GLM-5V Turbo|文本/图片|200K 上下文，多模态 Coding 基座|204800|0|" \
-        "glm-4.6v|GLM-4.6V|文本/图片|128K 上下文，视觉理解|131072|0|" ;;
+        "glm-5-turbo|GLM-5 Turbo|文本/图片|200K 上下文，多模态 Coding 基座|204800|0|" \
+        "glm-4.6|GLM-4.6|文本/图片|128K 上下文，视觉理解|131072|0|" ;;
     moonshot)
       printf '%s\n' \
         "kimi-k2.6|Kimi K2.6|文本/图片|256K 上下文，Kimi 新一代|262144|0|" \
         "kimi-k2.5|Kimi K2.5|文本/图片|256K 上下文，视觉/代码/Agent|262144|0|" ;;
     xiaomi)
-      printf '%s\n' "xiaomi/mimo-v2-flash|MiMo V2 Flash|文本/图片|OpenClaw 内置 provider" ;;
+      printf '%s\n' \
+        "xiaomi/mimo-v2.5-pro|MiMo V2.5 Pro|文本/图片|1M 上下文，强推理/复杂任务|1048576|0|" \
+        "xiaomi/mimo-v2.5|MiMo V2.5|文本/图片|1M 上下文，通用|1048576|0|" \
+        "xiaomi/mimo-v2-pro|MiMo V2 Pro|文本/图片|1M 上下文，旧版强推理|1048576|0|" \
+        "xiaomi/mimo-v2-flash|MiMo V2 Flash|文本/图片|128K 上下文，轻量高速|131072|0|" ;;
     openai)
+      # 上下文按 OpenAI 公开文档(GPT-5 系 256K, o3 系 200K),K=1024 换算
       printf '%s\n' \
-        "openai/gpt-5.4|GPT-5.4|文本/图片|主力模型" \
-        "openai/gpt-5.4-mini|GPT-5.4 Mini|文本/图片|轻量模型" \
-        "openai/gpt-5.3-codex|GPT-5.3 Codex|文本|代码模型" \
-        "openai/o3|o3|文本/图片|旧推理模型" ;;
+        "openai/gpt-5.4|GPT-5.4|文本/图片|256K 上下文，主力模型|262144|0|" \
+        "openai/gpt-5.4-mini|GPT-5.4 Mini|文本/图片|128K 上下文，轻量模型|131072|0|" \
+        "openai/gpt-5.3-codex|GPT-5.3 Codex|文本|256K 上下文，代码模型|262144|0|" \
+        "openai/o3|o3|文本/图片|200K 上下文，推理模型|204800|0|" ;;
     anthropic)
+      # Claude 4 系列默认 200K(开 1M context 需要 beta header,这里取默认)
       printf '%s\n' \
-        "anthropic/claude-opus-4-6|Claude Opus 4.6|文本/图片|最强推理" \
-        "anthropic/claude-sonnet-4-6|Claude Sonnet 4.6|文本/图片|均衡" \
-        "anthropic/claude-opus-4-5|Claude Opus 4.5|文本/图片|旧版" \
-        "anthropic/claude-sonnet-4-5|Claude Sonnet 4.5|文本/图片|旧版" ;;
+        "anthropic/claude-opus-4-6|Claude Opus 4.6|文本/图片|200K 上下文，最强推理|204800|0|" \
+        "anthropic/claude-sonnet-4-6|Claude Sonnet 4.6|文本/图片|200K 上下文，均衡|204800|0|" \
+        "anthropic/claude-opus-4-5|Claude Opus 4.5|文本/图片|200K 上下文，旧版|204800|0|" \
+        "anthropic/claude-sonnet-4-5|Claude Sonnet 4.5|文本/图片|200K 上下文，旧版|204800|0|" ;;
   esac
 }
 
@@ -388,7 +392,9 @@ apply_custom_model_metadata() {
   local base_url="$3"
   local metadata context max_tokens input source note
 
+  local is_known=true
   if ! metadata="$(model_metadata_for_provider "$provider_name" "$model_id")"; then
+    is_known=false
     metadata="0|0|文本||"
   fi
 
@@ -399,9 +405,18 @@ apply_custom_model_metadata() {
   if [[ -n "$CONTEXT_WINDOW" ]]; then
     context="$(read_optional_token_size "" "$CONTEXT_WINDOW")"
     source="用户手动输入"
+  elif [[ "$is_known" == "false" && "$context" == "0" ]]; then
+    # 用户手动输入的未知 model id,我们没有任何上下文数据,问一下
+    printf '\n' >&2
+    print_warn "手动输入的 Model ID 没有内置上下文配置。" >&2
+    print_warn "直接回车 = 沿用 OpenClaw 默认值（custom 模型通常是 16K）。" >&2
+    printf '  支持写法: 1M / 1m / 256K / 256k / 1048576 / 262144（K=1024）\n' >&2
+    context="$(read_optional_token_size "  请输入上下文窗口 contextWindow（可选）: ")"
+    if [[ "$context" != "0" ]]; then
+      source="用户手动输入"
+    fi
   fi
-  # 没预设上下文就沿用 OpenClaw 内置默认值,不再交互打断流程。
-  # 需要自定义可用 --context-window 参数或 OPENCLAW_CONTEXT_WINDOW 环境变量。
+  # 已知模型(在预设里但没填 context)沿用 OpenClaw 默认值,不打断流程
 
   if [[ "$context" == "0" && "$max_tokens" == "0" ]]; then
     print_info "未设置上下文元数据，保留 OpenClaw 默认值（custom 模型通常是 16K）"
