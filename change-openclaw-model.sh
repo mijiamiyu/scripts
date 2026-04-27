@@ -75,14 +75,16 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-provider_keys=(1 2 3 4 5 6 7 8 9 10 11 12)
-provider_names=(deepseek minimax qwen volcengine ark-coding zai moonshot qianfan xiaomi openai anthropic custom)
-provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao（标准 API）" "火山方舟 Coding Plan（需订阅）" "智谱 / BigModel" "Moonshot / Kimi" "百度千帆" "小米 MiMo" "OpenAI" "Anthropic" "自定义兼容接口")
-provider_modes=(custom custom custom custom custom custom custom custom builtin builtin builtin custom)
-provider_base_urls=("https://api.deepseek.com" "https://api.minimax.io/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "https://qianfan.baidubce.com/v2" "" "" "" "")
-provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://console.bce.baidu.com/qianfan/" "https://platform.xiaomimimo.com/token-plan" "https://platform.openai.com/" "https://console.anthropic.com/" "")
-provider_auth=("" "" "" "" "" "" "" "" "xiaomi-api-key" "openai-api-key" "apiKey" "")
-provider_keyflag=("" "" "" "" "" "" "" "" "--xiaomi-api-key" "--openai-api-key" "--anthropic-api-key" "")
+# provider_keys 中空字符串表示"主菜单不显示"——这些是子计费方式,
+# 用户先选 volcengine/qwen,再二级菜单升级到 ark-coding / qwen-token-plan
+provider_keys=(1 2 3 4 "" "" 5 6 7 8 9 10 11)
+provider_names=(deepseek minimax qwen volcengine ark-coding qwen-token-plan zai moonshot qianfan xiaomi openai anthropic custom)
+provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao" "火山方舟 Coding Plan" "阿里百炼 Token Plan" "智谱 / BigModel" "Moonshot / Kimi" "百度千帆" "小米 MiMo" "OpenAI" "Anthropic" "自定义兼容接口")
+provider_modes=(custom custom custom custom custom custom custom custom custom builtin builtin builtin custom)
+provider_base_urls=("https://api.deepseek.com" "https://api.minimax.io/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "https://qianfan.baidubce.com/v2" "" "" "" "")
+provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" "https://bailian.console.aliyun.com/?tab=tokenplan" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://console.bce.baidu.com/qianfan/" "https://platform.xiaomimimo.com/token-plan" "https://platform.openai.com/" "https://console.anthropic.com/" "")
+provider_auth=("" "" "" "" "" "" "" "" "" "xiaomi-api-key" "openai-api-key" "apiKey" "")
+provider_keyflag=("" "" "" "" "" "" "" "" "" "--xiaomi-api-key" "--openai-api-key" "--anthropic-api-key" "")
 
 read_required() {
   local prompt="$1"
@@ -152,8 +154,11 @@ select_provider() {
   fi
 
   printf '  请选择 AI 厂商:\n\n' >&2
-  local i
+  local i visible_max=0
   for i in "${!provider_names[@]}"; do
+    # 跳过子计费方式(provider_keys 为空表示不在主菜单显示)
+    [[ -z "${provider_keys[$i]}" ]] && continue
+    (( ${provider_keys[$i]} > visible_max )) && visible_max="${provider_keys[$i]}"
     local base_text=""
     local portal_text=""
     [[ -n "${provider_base_urls[$i]}" ]] && base_text=" | API: ${provider_base_urls[$i]}"
@@ -161,14 +166,47 @@ select_provider() {
     printf '  %2s) %-10s - %s%s%s\n' "${provider_keys[$i]}" "${provider_names[$i]}" "${provider_labels[$i]}" "$base_text" "$portal_text" >&2
   done
   printf '   0) 仅切换模型 / 跳过厂商配置\n\n' >&2
-  # provider_keys=(1 2 3 ... N) 形式,最大编号 = 数组长度。bash 3.2 兼容写法
-  printf '  请输入编号 [0-%d]: ' "${#provider_keys[@]}" >&2
+  printf '  请输入编号 [0-%d]: ' "$visible_max" >&2
   read -r choice <&3
   if [[ "$choice" == "0" ]]; then
     printf '\n'
     return
   fi
-  provider_index_by_name_or_key "$choice" || true
+  if ! idx="$(provider_index_by_name_or_key "$choice")"; then
+    return
+  fi
+
+  # 主厂商选定后,询问是否升级到付费计费方式
+  case "${provider_names[$idx]}" in
+    volcengine)
+      idx="$(ask_plan_upgrade "$idx" ark-coding 'Coding Plan(智能路由,需在火山方舟控制台单独订阅)')"
+      ;;
+    qwen)
+      idx="$(ask_plan_upgrade "$idx" qwen-token-plan 'Token Plan(智能路由,需在阿里百炼控制台单独订阅)')"
+      ;;
+  esac
+  printf '%s\n' "$idx"
+}
+
+# 二级菜单:问用户是要主厂商的标准 API 还是订阅计费方式
+ask_plan_upgrade() {
+  local base_idx="$1"
+  local plan_name="$2"
+  local plan_desc="$3"
+  printf '\n  %s 还支持订阅计费方式(可选):\n' "${provider_labels[$base_idx]}" >&2
+  printf '   1) 标准按量付费(默认,普通 API Key 即可)\n' >&2
+  printf '   2) %s\n' "$plan_desc" >&2
+  printf '  请选择 [1/2,直接回车=1]: ' >&2
+  local plan_choice
+  read -r plan_choice <&3
+  if [[ "$plan_choice" == "2" ]]; then
+    local plan_idx
+    if plan_idx="$(provider_index_by_name_or_key "$plan_name")"; then
+      printf '%s\n' "$plan_idx"
+      return
+    fi
+  fi
+  printf '%s\n' "$base_idx"
 }
 
 models_for_provider() {
@@ -204,18 +242,25 @@ models_for_provider() {
         "doubao-seed-2-0-lite-260215|Doubao Seed 2.0 Lite 快照|文本/图片|版本化 ID" \
         "doubao-seed-2-0-mini-260215|Doubao Seed 2.0 Mini 快照|文本/图片|版本化 ID" ;;
     ark-coding)
+      # 上下文窗口暂未做权威验证,留 0 在 UI 上不显示。准确数据待对照火山方舟 Coding Plan 文档补
       printf '%s\n' \
-        "ark-code-latest|Ark Code Latest|文本/图片|Auto 模式：按效果+速度智能路由（推荐）" \
-        "doubao-seed-code|Doubao Seed Code|文本/图片|Doubao 编程主推" \
-        "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|2.0 代编程版" \
-        "doubao-seed-2.0-pro|Doubao Seed 2.0 Pro|文本/图片|强推理" \
-        "doubao-seed-2.0-lite|Doubao Seed 2.0 Lite|文本/图片|通用性价比" \
-        "kimi-k2.6|Kimi K2.6|文本|Moonshot 最新" \
-        "kimi-k2.5|Kimi K2.5|文本|Moonshot 上一代" \
-        "deepseek-v3.2|DeepSeek V3.2|文本|DeepSeek 通过 Coding Plan 路由" \
-        "minimax-m2.7|MiniMax M2.7|文本|MiniMax 通过 Coding Plan 路由" \
-        "glm-5.1|GLM-5.1|文本|智谱通过 Coding Plan 路由" \
-        "glm-4.7|GLM-4.7|文本|智谱旧版" ;;
+        "ark-code-latest|Ark Code Latest|文本/图片|Auto 模式：按效果+速度智能路由（推荐）|0|0|" \
+        "doubao-seed-code|Doubao Seed Code|文本/图片|Doubao 编程主推|0|0|" \
+        "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|2.0 代编程版|0|0|" \
+        "doubao-seed-2.0-pro|Doubao Seed 2.0 Pro|文本/图片|强推理|0|0|" \
+        "doubao-seed-2.0-lite|Doubao Seed 2.0 Lite|文本/图片|通用性价比|0|0|" \
+        "kimi-k2.6|Kimi K2.6|文本|Moonshot 最新|0|0|" \
+        "kimi-k2.5|Kimi K2.5|文本|Moonshot 上一代|0|0|" \
+        "deepseek-v3.2|DeepSeek V3.2|文本|DeepSeek 通过 Coding Plan 路由|0|0|" \
+        "minimax-m2.7|MiniMax M2.7|文本|MiniMax 通过 Coding Plan 路由|0|0|" \
+        "glm-5.1|GLM-5.1|文本|智谱通过 Coding Plan 路由|0|0|" \
+        "glm-4.7|GLM-4.7|文本|智谱旧版|0|0|" ;;
+    qwen-token-plan)
+      printf '%s\n' \
+        "qwen3.6-plus|Qwen3.6 Plus|文本/图片|阿里百炼 Token Plan 主推|1000000|0|用户提供" \
+        "glm-5|GLM-5|文本|智谱通过 Token Plan 路由|202752|0|用户提供" \
+        "MiniMax-M2.5|MiniMax M2.5|文本|MiniMax 通过 Token Plan 路由|196608|0|用户提供" \
+        "deepseek-v3.2|DeepSeek V3.2|文本|DeepSeek 通过 Token Plan 路由|163840|0|用户提供" ;;
     zai)
       printf '%s\n' \
         "glm-5.1|GLM-5.1|文本|当前快速开始默认模型" \
