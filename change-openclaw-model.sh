@@ -108,7 +108,7 @@ select_provider() {
       printf '%s\n' "$idx"
       return
     fi
-    print_warn "未识别的厂商: $PROVIDER，将进入交互选择" >&2
+    print_warn "未识别的厂商: ${PROVIDER}，将进入交互选择" >&2
   fi
 
   printf '  请选择 AI 厂商:\n\n' >&2
@@ -245,7 +245,7 @@ read_optional_token_size() {
         printf '%s\n' "$parsed"
         return 0
       fi
-      print_warn "无法识别 token 数量: $value。示例: 1M、256K、1000000、262144" >&2
+      print_warn "无法识别 token 数量: ${value}。示例: 1M、256K、1000000、262144" >&2
       printf '0\n'
       return 0
     fi
@@ -259,7 +259,7 @@ read_optional_token_size() {
       printf '%s\n' "$parsed"
       return 0
     fi
-    print_warn "无法识别 token 数量: $value。示例: 1M、256K、1000000、262144" >&2
+    print_warn "无法识别 token 数量: ${value}。示例: 1M、256K、1000000、262144" >&2
     value=""
   done
 }
@@ -373,7 +373,7 @@ NODE
   elif [[ "$rc" -eq 2 ]]; then
     print_warn "未能按 Base URL 找到 custom provider，跳过模型元数据写入"
   elif [[ "$rc" -eq 3 ]]; then
-    print_warn "未能在 custom provider 中找到模型 $model_id，跳过模型元数据写入"
+    print_warn "未能在 custom provider 中找到模型 ${model_id}，跳过模型元数据写入"
   else
     print_warn "写入模型元数据失败，OpenClaw 主配置已完成"
   fi
@@ -414,7 +414,10 @@ select_model() {
     printf '%s\n' "$MODEL"
     return
   fi
-  mapfile -t models < <(models_for_provider "$provider_name")
+  local models=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && models+=("$line")
+  done < <(models_for_provider "$provider_name")
   if [[ "${#models[@]}" -eq 0 ]]; then
     read_required "  请输入 Model ID: "
     return
@@ -544,7 +547,7 @@ if [[ -n "$provider_idx" ]]; then
   set -e
   if [[ "$onboard_rc" -ne 0 ]]; then
     if [[ "${provider_modes[$provider_idx]}" == "custom" ]] && custom_onboard_applied "$selected_model" "$base"; then
-      print_warn "openclaw onboard 返回退出码 $onboard_rc，但模型配置已写入；通常是 Gateway 探测失败，继续补写模型元数据"
+      print_warn "openclaw onboard 返回退出码 ${onboard_rc}，但模型配置已写入；通常是 Gateway 探测失败，继续补写模型元数据"
       print_info "Gateway 启动失败不等于模型配置失败，可稍后单独执行 openclaw gateway restart 排查"
     else
       print_err "openclaw onboard 执行失败，退出码: $onboard_rc"
