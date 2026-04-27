@@ -342,8 +342,11 @@ function Invoke-SubscriptionFlow {
     Write-Info "正在调起 openclaw configure --section model..."
     Write-Host ""
 
-    # PowerShell 直接调用 openclaw,继承当前终端 stdin/stdout
-    & $script:OpenClawCmd configure --section model
+    # 用 cmd /c "...< CON" 让 openclaw 直接从 Windows 控制台设备读 stdin,
+    # 等价于 .sh 的 </dev/tty;否则 PowerShell 通过 irm | iex 调用时,
+    # & 启动的子进程 stdin 不是真终端,openclaw 读不到键盘会卡死
+    $cmdLine = '"' + $script:OpenClawCmd + '" configure --section model < CON'
+    & cmd /c $cmdLine
     if ($LASTEXITCODE -ne 0) {
         Write-Err "openclaw configure 失败,退出码: $LASTEXITCODE"
         throw "openclaw configure 失败 (exit code $LASTEXITCODE)"
