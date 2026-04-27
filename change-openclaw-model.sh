@@ -77,14 +77,14 @@ done
 
 # provider_keys 中空字符串表示"主菜单不显示"——这些是子计费方式,
 # 用户先选 volcengine/qwen,再二级菜单升级到 ark-coding / qwen-token-plan
-provider_keys=(1 2 3 4 "" "" 5 6 7 8 9 10 11)
-provider_names=(deepseek minimax qwen volcengine ark-coding qwen-token-plan zai moonshot qianfan xiaomi openai anthropic custom)
-provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao" "火山方舟 Coding Plan" "阿里百炼 Token Plan" "智谱 / BigModel" "Moonshot / Kimi" "百度千帆" "小米 MiMo" "OpenAI" "Anthropic" "自定义兼容接口")
-provider_modes=(custom custom custom custom custom custom custom custom custom builtin builtin builtin custom)
-provider_base_urls=("https://api.deepseek.com" "https://api.minimax.io/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "https://qianfan.baidubce.com/v2" "" "" "" "")
-provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" "https://bailian.console.aliyun.com/?tab=tokenplan" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://console.bce.baidu.com/qianfan/" "https://platform.xiaomimimo.com/token-plan" "https://platform.openai.com/" "https://console.anthropic.com/" "")
-provider_auth=("" "" "" "" "" "" "" "" "" "xiaomi-api-key" "openai-api-key" "apiKey" "")
-provider_keyflag=("" "" "" "" "" "" "" "" "" "--xiaomi-api-key" "--openai-api-key" "--anthropic-api-key" "")
+provider_keys=(1 2 3 4 "" "" 5 6 7 8 9 10)
+provider_names=(deepseek minimax qwen volcengine ark-coding qwen-token-plan zai moonshot xiaomi openai anthropic custom)
+provider_labels=("DeepSeek" "MiniMax" "阿里百炼 / Qwen" "火山方舟 / Doubao" "火山方舟 Coding Plan" "阿里百炼 Token Plan" "智谱 / BigModel" "Moonshot / Kimi" "小米 MiMo" "OpenAI" "Anthropic" "自定义兼容接口")
+provider_modes=(custom custom custom custom custom custom custom custom builtin builtin builtin custom)
+provider_base_urls=("https://api.deepseek.com" "https://api.minimax.io/v1" "https://dashscope.aliyuncs.com/compatible-mode/v1" "https://ark.cn-beijing.volces.com/api/v3" "https://ark.cn-beijing.volces.com/api/coding/v3" "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1" "https://open.bigmodel.cn/api/paas/v4" "https://api.moonshot.ai/v1" "" "" "" "")
+provider_portals=("https://platform.deepseek.com/" "https://platform.minimaxi.com/subscribe/token-plan" "https://bailian.console.aliyun.com/" "https://console.volcengine.com/ark/" "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" "https://bailian.console.aliyun.com/?tab=tokenplan" "https://open.bigmodel.cn/" "https://platform.moonshot.cn/" "https://platform.xiaomimimo.com/token-plan" "https://platform.openai.com/" "https://console.anthropic.com/" "")
+provider_auth=("" "" "" "" "" "" "" "" "xiaomi-api-key" "openai-api-key" "apiKey" "")
+provider_keyflag=("" "" "" "" "" "" "" "" "--xiaomi-api-key" "--openai-api-key" "--anthropic-api-key" "")
 
 # 把上下文 token 数格式化成人类可读的 K/M 标签(K=1024,M=1024*1024)
 # 仅在能整除时才用 K/M,否则直接输出原始数字
@@ -175,22 +175,26 @@ select_provider() {
     # 跳过子计费方式(provider_keys 为空表示不在主菜单显示)
     [[ -z "${provider_keys[$i]}" ]] && continue
     (( ${provider_keys[$i]} > visible_max )) && visible_max="${provider_keys[$i]}"
-    local base_text=""
     local portal_text=""
-    [[ -n "${provider_base_urls[$i]}" ]] && base_text=" | API: ${provider_base_urls[$i]}"
     [[ -n "${provider_portals[$i]}" ]] && portal_text=" | 官网: ${provider_portals[$i]}"
-    printf '  %2s) %-10s - %s%s%s\n' "${provider_keys[$i]}" "${provider_names[$i]}" "${provider_labels[$i]}" "$base_text" "$portal_text" >&2
+    printf '  %2s) %-10s - %s%s\n' "${provider_keys[$i]}" "${provider_names[$i]}" "${provider_labels[$i]}" "$portal_text" >&2
   done
   printf '   0) 仅切换模型 / 跳过厂商配置\n\n' >&2
-  printf '  请输入编号 [0-%d]: ' "$visible_max" >&2
-  read -r choice <&3
-  if [[ "$choice" == "0" ]]; then
-    printf '\n'
-    return
-  fi
-  if ! idx="$(provider_index_by_name_or_key "$choice")"; then
-    return
-  fi
+  while true; do
+    printf '  请输入编号 [0-%d]: ' "$visible_max" >&2
+    read -r choice <&3
+    if [[ "$choice" == "0" ]]; then
+      printf '\n'
+      return
+    fi
+    if idx="$(provider_index_by_name_or_key "$choice")"; then
+      # 二级要求:必须是主菜单可见的(provider_keys 非空)
+      if [[ -n "${provider_keys[$idx]}" ]]; then
+        break
+      fi
+    fi
+    print_warn "无效编号,请输入 0-${visible_max}" >&2
+  done
 
   # 主厂商选定后,询问是否升级到付费计费方式
   case "${provider_names[$idx]}" in
@@ -212,17 +216,29 @@ ask_plan_upgrade() {
   printf '\n  %s 还支持订阅计费方式(可选):\n' "${provider_labels[$base_idx]}" >&2
   printf '   1) 标准按量付费(默认,普通 API Key 即可)\n' >&2
   printf '   2) %s\n' "$plan_desc" >&2
-  printf '  请选择 [1/2,直接回车=1]: ' >&2
   local plan_choice
-  read -r plan_choice <&3
-  if [[ "$plan_choice" == "2" ]]; then
-    local plan_idx
-    if plan_idx="$(provider_index_by_name_or_key "$plan_name")"; then
-      printf '%s\n' "$plan_idx"
-      return
-    fi
-  fi
-  printf '%s\n' "$base_idx"
+  while true; do
+    printf '  请选择 [1/2,直接回车=1]: ' >&2
+    read -r plan_choice <&3
+    case "$plan_choice" in
+      ""|1)
+        printf '%s\n' "$base_idx"
+        return
+        ;;
+      2)
+        local plan_idx
+        if plan_idx="$(provider_index_by_name_or_key "$plan_name")"; then
+          printf '%s\n' "$plan_idx"
+          return
+        fi
+        printf '%s\n' "$base_idx"
+        return
+        ;;
+      *)
+        print_warn "无效输入,请输入 1 或 2" >&2
+        ;;
+    esac
+  done
 }
 
 models_for_provider() {
@@ -230,9 +246,7 @@ models_for_provider() {
     deepseek)
       printf '%s\n' \
         "deepseek-v4-pro|DeepSeek V4 Pro|文本|强推理/复杂任务|1048576|0|DeepSeek 官方 Hugging Face 模型卡" \
-        "deepseek-v4-flash|DeepSeek V4 Flash|文本|高速/低成本|1048576|0|DeepSeek 官方 Hugging Face 模型卡" \
-        "deepseek-chat|DeepSeek Chat|文本|旧别名，2026-07-24 弃用|0|0|" \
-        "deepseek-reasoner|DeepSeek Reasoner|文本|旧别名，2026-07-24 弃用|0|0|" ;;
+        "deepseek-v4-flash|DeepSeek V4 Flash|文本|高速/低成本|1048576|0|DeepSeek 官方 Hugging Face 模型卡" ;;
     minimax)
       printf '%s\n' \
         "MiniMax-M2.7|MiniMax M2.7|文本|默认推荐|204800|0|MiniMax 官方 API Overview" \
@@ -249,10 +263,10 @@ models_for_provider() {
         "qwen3.5-flash|Qwen3.5 Flash|文本/图片|1M 上下文|1048576|0|阿里云 Model Studio 官方模型列表" ;;
     volcengine)
       printf '%s\n' \
-        "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|编程/前端/Agent" \
-        "doubao-seed-2.0-pro|Doubao Seed 2.0 Pro|文本/图片|强推理/复杂任务" \
-        "doubao-seed-2.0-lite|Doubao Seed 2.0 Lite|文本/图片|通用性价比" \
-        "doubao-seed-2.0-mini|Doubao Seed 2.0 Mini|文本/图片|低延迟/高并发/低成本" ;;
+        "doubao-seed-2.0-code|Doubao Seed 2.0 Code|文本/图片|256K 上下文，编程/前端/Agent|262144|0|" \
+        "doubao-seed-2.0-pro|Doubao Seed 2.0 Pro|文本/图片|256K 上下文，强推理/复杂任务|262144|0|" \
+        "doubao-seed-2.0-lite|Doubao Seed 2.0 Lite|文本/图片|256K 上下文，通用性价比|262144|0|" \
+        "doubao-seed-2.0-mini|Doubao Seed 2.0 Mini|文本/图片|256K 上下文，低延迟/高并发/低成本|262144|0|" ;;
     ark-coding)
       # 上下文写在 note 里(K=1024 换算),不再额外用括号显示
       printf '%s\n' \
@@ -275,24 +289,17 @@ models_for_provider() {
         "deepseek-v3.2|DeepSeek V3.2|文本|160K 上下文，DeepSeek 通过 Token Plan 路由|163840|0|" ;;
     zai)
       printf '%s\n' \
-        "glm-5.1|GLM-5.1|文本|当前快速开始默认模型" \
-        "glm-5|GLM-5|文本|Agentic Engineering" \
-        "glm-4.7|GLM-4.7|文本|Agentic Coding" \
-        "glm-4.7-flashx|GLM-4.7 FlashX|文本|轻量高速版" \
-        "glm-5v-turbo|GLM-5V Turbo|文本/图片|多模态 Coding 基座" \
-        "glm-4.6v|GLM-4.6V|文本/图片|视觉理解" ;;
+        "glm-5.1|GLM-5.1|文本|200K 上下文，当前快速开始默认模型|204800|0|" \
+        "glm-5|GLM-5|文本|202K 上下文，Agentic Engineering|206848|0|" \
+        "glm-4.7|GLM-4.7|文本|200K 上下文，Agentic Coding|204800|0|" \
+        "glm-4.7-flash|GLM-4.7 Flash|文本|200K 上下文，轻量版|204800|0|" \
+        "glm-4.7-flashx|GLM-4.7 FlashX|文本|200K 上下文，轻量高速版|204800|0|" \
+        "glm-5v-turbo|GLM-5V Turbo|文本/图片|200K 上下文，多模态 Coding 基座|204800|0|" \
+        "glm-4.6v|GLM-4.6V|文本/图片|128K 上下文，视觉理解|131072|0|" ;;
     moonshot)
       printf '%s\n' \
-        "kimi-k2.6|Kimi K2.6|文本/图片|Kimi 新一代" \
-        "kimi-k2.5|Kimi K2.5|文本/图片|视觉/代码/Agent" \
-        "kimi-k2|Kimi K2|文本|旧一代" \
-        "moonshot-v1-8k-vision-preview|Moonshot Vision Preview|文本/图片|视觉预览" ;;
-    qianfan)
-      printf '%s\n' \
-        "ernie-4.5-turbo-32k|ERNIE 4.5 Turbo 32K|文本|通用文本" \
-        "ernie-4.0-turbo-8k|ERNIE 4.0 Turbo 8K|文本|稳定旧版" \
-        "deepseek-v3.2|DeepSeek V3.2 on Qianfan|文本|千帆代理模型" \
-        "deepseek-r1-distill-qwen-32b|DeepSeek R1 Distill Qwen 32B|文本|蒸馏推理" ;;
+        "kimi-k2.6|Kimi K2.6|文本/图片|256K 上下文，Kimi 新一代|262144|0|" \
+        "kimi-k2.5|Kimi K2.5|文本/图片|256K 上下文，视觉/代码/Agent|262144|0|" ;;
     xiaomi)
       printf '%s\n' "xiaomi/mimo-v2-flash|MiMo V2 Flash|文本/图片|OpenClaw 内置 provider" ;;
     openai)
@@ -335,9 +342,10 @@ parse_token_size() {
   if [[ "$normalized" =~ ^([0-9]+)([kKmM]?)$ ]]; then
     local num="${BASH_REMATCH[1]}"
     local unit="${BASH_REMATCH[2]}"
+    # K=1024,M=1024*1024(全脚本统一二进制换算)
     case "$unit" in
-      k|K) printf '%s\n' "$((num * 1000))" ;;
-      m|M) printf '%s\n' "$((num * 1000000))" ;;
+      k|K) printf '%s\n' "$((num * 1024))" ;;
+      m|M) printf '%s\n' "$((num * 1048576))" ;;
       *) printf '%s\n' "$num" ;;
     esac
     return 0
@@ -391,16 +399,9 @@ apply_custom_model_metadata() {
   if [[ -n "$CONTEXT_WINDOW" ]]; then
     context="$(read_optional_token_size "" "$CONTEXT_WINDOW")"
     source="用户手动输入"
-  elif [[ "$context" == "0" ]]; then
-    printf '\n' >&2
-    print_warn "当前模型没有内置上下文配置。" >&2
-    print_warn "直接回车 = 保留 OpenClaw 默认值（custom 模型通常是 16K 上下文）。" >&2
-    printf '  支持写法: 1M / 1m / 256K / 256k / 1000000 / 262144\n' >&2
-    context="$(read_optional_token_size "  请输入上下文窗口 contextWindow（可选）: ")"
-    if [[ "$context" != "0" ]]; then
-      source="用户手动输入"
-    fi
   fi
+  # 没预设上下文就沿用 OpenClaw 内置默认值,不再交互打断流程。
+  # 需要自定义可用 --context-window 参数或 OPENCLAW_CONTEXT_WINDOW 环境变量。
 
   if [[ "$context" == "0" && "$max_tokens" == "0" ]]; then
     print_info "未设置上下文元数据，保留 OpenClaw 默认值（custom 模型通常是 16K）"
@@ -542,25 +543,33 @@ select_model() {
   done
   printf '   0) 手动输入 Model ID\n' >&2
   printf '   b) 返回上一步(重选厂商)\n\n' >&2
-  printf '  请选择 [0-%d / b]: ' "${#models[@]}" >&2
-  read -r choice <&3
-  case "$choice" in
-    b|B|back)
-      printf '__BACK__\n'
+  while true; do
+    printf '  请选择 [0-%d / b]: ' "${#models[@]}" >&2
+    read -r choice <&3
+    case "$choice" in
+      b|B|back)
+        printf '__BACK__\n'
+        return
+        ;;
+    esac
+    if [[ "$choice" == "0" ]]; then
+      # 用 read_input_with_back 让用户手动输入也能 b 返回
+      local manual_id
+      manual_id="$(read_input_with_back "  请输入自定义 Model ID(b 返回上一步): ")"
+      if [[ "$manual_id" == "__BACK__" ]]; then
+        printf '__BACK__\n'
+        return
+      fi
+      printf '%s\n' "$manual_id"
       return
-      ;;
-  esac
-  if [[ "$choice" == "0" ]]; then
-    read_required "  请输入自定义 Model ID: "
-    return
-  fi
-  if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#models[@]} )); then
-    entry="${models[$((choice - 1))]}"
-    printf '%s\n' "${entry%%|*}"
-    return
-  fi
-  print_warn "无效选择，跳过模型设置" >&2
-  printf '\n'
+    fi
+    if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#models[@]} )); then
+      entry="${models[$((choice - 1))]}"
+      printf '%s\n' "${entry%%|*}"
+      return
+    fi
+    print_warn "无效输入,请输入 0-${#models[@]} 或 b" >&2
+  done
 }
 
 gateway_is_running() {

@@ -164,19 +164,16 @@ $script:Providers = @(
     @{ Key="";   Name="qwen-token-plan";Label="阿里百炼 Token Plan";    Mode="custom"; BaseUrl="https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"; Compatibility="openai"; Portal="https://bailian.console.aliyun.com/?tab=tokenplan" },
     @{ Key="5";  Name="zai";            Label="智谱 / BigModel";        Mode="custom"; BaseUrl="https://open.bigmodel.cn/api/paas/v4"; Compatibility="openai"; Portal="https://open.bigmodel.cn/" },
     @{ Key="6";  Name="moonshot";       Label="Moonshot / Kimi";       Mode="custom"; BaseUrl="https://api.moonshot.ai/v1"; Compatibility="openai"; Portal="https://platform.moonshot.cn/" },
-    @{ Key="7";  Name="qianfan";        Label="百度千帆";               Mode="custom"; BaseUrl="https://qianfan.baidubce.com/v2"; Compatibility="openai"; Portal="https://console.bce.baidu.com/qianfan/" },
-    @{ Key="8";  Name="xiaomi";         Label="小米 MiMo";              Mode="builtin"; AuthChoice="xiaomi-api-key"; KeyFlag="--xiaomi-api-key"; Portal="https://platform.xiaomimimo.com/token-plan" },
-    @{ Key="9";  Name="openai";         Label="OpenAI";                Mode="builtin"; AuthChoice="openai-api-key"; KeyFlag="--openai-api-key"; Portal="https://platform.openai.com/" },
-    @{ Key="10"; Name="anthropic";      Label="Anthropic";             Mode="builtin"; AuthChoice="apiKey"; KeyFlag="--anthropic-api-key"; Portal="https://console.anthropic.com/" },
-    @{ Key="11"; Name="custom";         Label="自定义兼容接口";         Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
+    @{ Key="7";  Name="xiaomi";         Label="小米 MiMo";              Mode="builtin"; AuthChoice="xiaomi-api-key"; KeyFlag="--xiaomi-api-key"; Portal="https://platform.xiaomimimo.com/token-plan" },
+    @{ Key="8";  Name="openai";         Label="OpenAI";                Mode="builtin"; AuthChoice="openai-api-key"; KeyFlag="--openai-api-key"; Portal="https://platform.openai.com/" },
+    @{ Key="9";  Name="anthropic";      Label="Anthropic";             Mode="builtin"; AuthChoice="apiKey"; KeyFlag="--anthropic-api-key"; Portal="https://console.anthropic.com/" },
+    @{ Key="10"; Name="custom";         Label="自定义兼容接口";         Mode="custom"; BaseUrl=""; Compatibility="openai"; Portal="" }
 )
 
 $script:ModelMap = @{
     "deepseek" = @(
         (New-Model "deepseek-v4-pro" "DeepSeek V4 Pro" "文本" "强推理/复杂任务" 1048576 0 "DeepSeek 官方 Hugging Face 模型卡"),
-        (New-Model "deepseek-v4-flash" "DeepSeek V4 Flash" "文本" "高速/低成本" 1048576 0 "DeepSeek 官方 Hugging Face 模型卡"),
-        (New-Model "deepseek-chat" "DeepSeek Chat" "文本" "旧别名，2026-07-24 弃用"),
-        (New-Model "deepseek-reasoner" "DeepSeek Reasoner" "文本" "旧别名，2026-07-24 弃用")
+        (New-Model "deepseek-v4-flash" "DeepSeek V4 Flash" "文本" "高速/低成本" 1048576 0 "DeepSeek 官方 Hugging Face 模型卡")
     )
     "minimax" = @(
         (New-Model "MiniMax-M2.7" "MiniMax M2.7" "文本" "默认推荐" 204800 0 "MiniMax 官方 API Overview"),
@@ -193,10 +190,10 @@ $script:ModelMap = @{
         (New-Model "qwen3.5-flash" "Qwen3.5 Flash" "文本/图片" "1M 上下文" 1048576 0 "阿里云 Model Studio 官方模型列表")
     )
     "volcengine" = @(
-        (New-Model "doubao-seed-2.0-code" "Doubao Seed 2.0 Code" "文本/图片" "编程/前端/Agent"),
-        (New-Model "doubao-seed-2.0-pro" "Doubao Seed 2.0 Pro" "文本/图片" "强推理/复杂任务"),
-        (New-Model "doubao-seed-2.0-lite" "Doubao Seed 2.0 Lite" "文本/图片" "通用性价比"),
-        (New-Model "doubao-seed-2.0-mini" "Doubao Seed 2.0 Mini" "文本/图片" "低延迟/高并发/低成本")
+        (New-Model "doubao-seed-2.0-code" "Doubao Seed 2.0 Code" "文本/图片" "256K 上下文，编程/前端/Agent" 262144 0 ""),
+        (New-Model "doubao-seed-2.0-pro" "Doubao Seed 2.0 Pro" "文本/图片" "256K 上下文，强推理/复杂任务" 262144 0 ""),
+        (New-Model "doubao-seed-2.0-lite" "Doubao Seed 2.0 Lite" "文本/图片" "256K 上下文，通用性价比" 262144 0 ""),
+        (New-Model "doubao-seed-2.0-mini" "Doubao Seed 2.0 Mini" "文本/图片" "256K 上下文，低延迟/高并发/低成本" 262144 0 "")
     )
     "ark-coding" = @(
         (New-Model "ark-code-latest" "Ark Code Latest" "文本/图片" "250K 上下文，Auto 模式：按效果+速度智能路由（推荐）" 256000 0 ""),
@@ -218,24 +215,17 @@ $script:ModelMap = @{
         (New-Model "deepseek-v3.2" "DeepSeek V3.2" "文本" "160K 上下文，DeepSeek 通过 Token Plan 路由" 163840 0 "")
     )
     "zai" = @(
-        (New-Model "glm-5.1" "GLM-5.1" "文本" "当前快速开始默认模型"),
-        (New-Model "glm-5" "GLM-5" "文本" "Agentic Engineering"),
-        (New-Model "glm-4.7" "GLM-4.7" "文本" "Agentic Coding"),
-        (New-Model "glm-4.7-flashx" "GLM-4.7 FlashX" "文本" "轻量高速版"),
-        (New-Model "glm-5v-turbo" "GLM-5V Turbo" "文本/图片" "多模态 Coding 基座"),
-        (New-Model "glm-4.6v" "GLM-4.6V" "文本/图片" "视觉理解")
+        (New-Model "glm-5.1" "GLM-5.1" "文本" "200K 上下文，当前快速开始默认模型" 204800 0 ""),
+        (New-Model "glm-5" "GLM-5" "文本" "202K 上下文，Agentic Engineering" 206848 0 ""),
+        (New-Model "glm-4.7" "GLM-4.7" "文本" "200K 上下文，Agentic Coding" 204800 0 ""),
+        (New-Model "glm-4.7-flash" "GLM-4.7 Flash" "文本" "200K 上下文，轻量版" 204800 0 ""),
+        (New-Model "glm-4.7-flashx" "GLM-4.7 FlashX" "文本" "200K 上下文，轻量高速版" 204800 0 ""),
+        (New-Model "glm-5v-turbo" "GLM-5V Turbo" "文本/图片" "200K 上下文，多模态 Coding 基座" 204800 0 ""),
+        (New-Model "glm-4.6v" "GLM-4.6V" "文本/图片" "128K 上下文，视觉理解" 131072 0 "")
     )
     "moonshot" = @(
-        (New-Model "kimi-k2.6" "Kimi K2.6" "文本/图片" "Kimi 新一代"),
-        (New-Model "kimi-k2.5" "Kimi K2.5" "文本/图片" "视觉/代码/Agent"),
-        (New-Model "kimi-k2" "Kimi K2" "文本" "旧一代"),
-        (New-Model "moonshot-v1-8k-vision-preview" "Moonshot Vision Preview" "文本/图片" "视觉预览")
-    )
-    "qianfan" = @(
-        (New-Model "ernie-4.5-turbo-32k" "ERNIE 4.5 Turbo 32K" "文本" "通用文本"),
-        (New-Model "ernie-4.0-turbo-8k" "ERNIE 4.0 Turbo 8K" "文本" "稳定旧版"),
-        (New-Model "deepseek-v3.2" "DeepSeek V3.2 on Qianfan" "文本" "千帆代理模型"),
-        (New-Model "deepseek-r1-distill-qwen-32b" "DeepSeek R1 Distill Qwen 32B" "文本" "蒸馏推理")
+        (New-Model "kimi-k2.6" "Kimi K2.6" "文本/图片" "256K 上下文，Kimi 新一代" 262144 0 ""),
+        (New-Model "kimi-k2.5" "Kimi K2.5" "文本/图片" "256K 上下文，视觉/代码/Agent" 262144 0 "")
     )
     "xiaomi" = @(
         (New-Model "xiaomi/mimo-v2-flash" "MiMo V2 Flash" "文本/图片" "OpenClaw 内置 provider")
@@ -271,18 +261,21 @@ function Select-Provider {
         if (-not $p.Key) { continue }
         $keyInt = 0
         if ([int]::TryParse($p.Key, [ref]$keyInt) -and $keyInt -gt $visibleMax) { $visibleMax = $keyInt }
-        $baseText = if ($p.BaseUrl) { " | API: $($p.BaseUrl)" } else { "" }
         $portalText = if ($p.Portal) { " | 官网: $($p.Portal)" } else { "" }
-        Write-Host ("  {0,2}) {1,-10} - {2}{3}{4}" -f $p.Key, $p.Name, $p.Label, $baseText, $portalText)
+        Write-Host ("  {0,2}) {1,-10} - {2}{3}" -f $p.Key, $p.Name, $p.Label, $portalText)
     }
     Write-Host "   0) 仅切换模型 / 跳过厂商配置"
     Write-Host ""
 
-    $choice = (Read-Host "  请输入编号 [0-$visibleMax]").Trim()
-    if ($choice -eq "0") { return $null }
-    $picked = $script:Providers | Where-Object { ($_.Key -and $_.Key -eq $choice) -or $_.Name -eq $choice } | Select-Object -First 1
-    if (-not $picked) { return $null }
-    return (Get-PlanUpgrade -Base $picked)
+    while ($true) {
+        $choice = (Read-Host "  请输入编号 [0-$visibleMax]").Trim()
+        if ($choice -eq "0") { return $null }
+        $picked = $script:Providers | Where-Object { ($_.Key -and $_.Key -eq $choice) -or $_.Name -eq $choice } | Select-Object -First 1
+        if ($picked -and $picked.Key) {
+            return (Get-PlanUpgrade -Base $picked)
+        }
+        Write-Warn "无效编号,请输入 0-$visibleMax"
+    }
 }
 
 # 二级菜单:volcengine→Coding Plan, qwen→Token Plan
@@ -299,12 +292,20 @@ function Get-PlanUpgrade {
     Write-Host "  $($Base.Label) 还支持订阅计费方式(可选):" -ForegroundColor Cyan
     Write-Host "   1) 标准按量付费(默认,普通 API Key 即可)"
     Write-Host "   2) $($plan.Desc)"
-    $planChoice = (Read-Host "  请选择 [1/2,直接回车=1]").Trim()
-    if ($planChoice -eq "2") {
-        $upgraded = $script:Providers | Where-Object { $_.Name -eq $plan.Name } | Select-Object -First 1
-        if ($upgraded) { return $upgraded }
+    while ($true) {
+        $planChoice = (Read-Host "  请选择 [1/2,直接回车=1]").Trim()
+        switch ($planChoice) {
+            { $_ -in @("", "1") } {
+                return $Base
+            }
+            "2" {
+                $upgraded = $script:Providers | Where-Object { $_.Name -eq $plan.Name } | Select-Object -First 1
+                if ($upgraded) { return $upgraded }
+                return $Base
+            }
+            default { Write-Warn "无效输入,请输入 1 或 2" }
+        }
     }
-    return $Base
 }
 
 function Select-Model {
@@ -333,19 +334,20 @@ function Select-Model {
     Write-Host "   b) 返回上一步(重选厂商)"
     Write-Host ""
 
-    $choice = (Read-Host "  请选择 [0-$($models.Count) / b]").Trim()
-    if ($choice -match "^(b|B|back)$") { return "__BACK__" }
-    if ($choice -eq "0") {
-        return (Read-Required -Prompt "  请输入自定义 Model ID")
+    while ($true) {
+        $choice = (Read-Host "  请选择 [0-$($models.Count) / b]").Trim()
+        if ($choice -match "^(b|B|back)$") { return "__BACK__" }
+        if ($choice -eq "0") {
+            $manual = Read-InputWithBack -Prompt "  请输入自定义 Model ID(b 返回上一步)"
+            if ($manual -eq "__BACK__") { return "__BACK__" }
+            return $manual
+        }
+        $idx = 0
+        if ([int]::TryParse($choice, [ref]$idx) -and $idx -ge 1 -and $idx -le $models.Count) {
+            return $models[$idx - 1].Id
+        }
+        Write-Warn "无效输入,请输入 0-$($models.Count) 或 b"
     }
-
-    $idx = 0
-    if ([int]::TryParse($choice, [ref]$idx) -and $idx -ge 1 -and $idx -le $models.Count) {
-        return $models[$idx - 1].Id
-    }
-
-    Write-Warn "无效选择，跳过模型设置"
-    return ""
 }
 
 function Get-SelectedModelInfo {
@@ -387,12 +389,13 @@ function Convert-TokenSize {
     if ($normalized -match '^(?<num>\d+(\.\d+)?)(?<unit>[kKmM])?$') {
         $num = [double]$Matches["num"]
         $unit = $Matches["unit"]
-        if ($unit -match "^[kK]$") { return [int][math]::Round($num * 1000) }
-        if ($unit -match "^[mM]$") { return [int][math]::Round($num * 1000000) }
+        # K=1024, M=1024*1024(全脚本统一二进制换算)
+        if ($unit -match "^[kK]$") { return [int][math]::Round($num * 1024) }
+        if ($unit -match "^[mM]$") { return [int][math]::Round($num * 1048576) }
         return [int][math]::Round($num)
     }
 
-    throw "无法识别 token 数量: $Value。示例: 1M、256K、1000000、262144"
+    throw "无法识别 token 数量: $Value。示例: 1M、256K、1048576、262144"
 }
 
 function Read-OptionalTokenSize {
@@ -430,18 +433,9 @@ function Complete-CustomMetadata {
     if ($ContextWindow) {
         $ModelInfo["ContextWindow"] = Read-OptionalTokenSize -Prompt "" -Value $ContextWindow
         $ModelInfo["Source"] = "用户手动输入"
-    } elseif ($ModelInfo["ContextWindow"] -le 0) {
-        Write-Host ""
-        Write-Host "  当前模型没有内置上下文配置。" -ForegroundColor Yellow
-        Write-Host "  直接回车 = 保留 OpenClaw 默认值（custom 模型通常是 16K 上下文）。" -ForegroundColor Yellow
-        Write-Host "  支持写法: 1M / 1m / 256K / 256k / 1000000 / 262144"
-        $ctx = Read-OptionalTokenSize -Prompt "  请输入上下文窗口 contextWindow（可选）" -Value $ContextWindow
-        if ($ctx -gt 0) {
-            $ModelInfo["ContextWindow"] = $ctx
-            $ModelInfo["Source"] = "用户手动输入"
-        }
     }
-
+    # 没预设上下文就沿用 OpenClaw 内置默认值,不再交互打断流程。
+    # 需要自定义可用 -ContextWindow 参数或 OPENCLAW_CONTEXT_WINDOW 环境变量。
     return $ModelInfo
 }
 
