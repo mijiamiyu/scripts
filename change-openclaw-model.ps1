@@ -157,7 +157,7 @@ function New-Model {
 # 用户先选 volcengine/qwen,再二级菜单升级到 ark-coding / qwen-token-plan
 $script:Providers = @(
     @{ Key="1";  Name="deepseek";       Label="DeepSeek";              Mode="custom"; BaseUrl="https://api.deepseek.com"; Compatibility="openai"; Portal="https://platform.deepseek.com/" },
-    @{ Key="2";  Name="minimax";        Label="MiniMax";               Mode="custom"; BaseUrl="https://api.minimax.io/v1"; Compatibility="openai"; Portal="https://platform.minimaxi.com/subscribe/token-plan" },
+    @{ Key="2";  Name="minimax";        Label="MiniMax";               Mode="custom"; BaseUrl="https://api.minimaxi.com/v1"; Compatibility="openai"; Portal="https://platform.minimaxi.com/subscribe/token-plan" },
     @{ Key="3";  Name="qwen";           Label="阿里百炼 / Qwen";        Mode="custom"; BaseUrl="https://dashscope.aliyuncs.com/compatible-mode/v1"; Compatibility="openai"; Portal="https://bailian.console.aliyun.com/" },
     @{ Key="4";  Name="volcengine";     Label="火山方舟 / Doubao";      Mode="custom"; BaseUrl="https://ark.cn-beijing.volces.com/api/v3"; Compatibility="openai"; Portal="https://console.volcengine.com/ark/" },
     @{ Key="";   Name="ark-coding";     Label="火山方舟 Coding Plan";   Mode="custom"; BaseUrl="https://ark.cn-beijing.volces.com/api/coding/v3"; Compatibility="openai"; Portal="https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement/coding-plan" },
