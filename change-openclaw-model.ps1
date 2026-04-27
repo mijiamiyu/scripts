@@ -288,9 +288,82 @@ function Select-Provider {
         if ($choice -eq "0") { return $null }
         $picked = $script:Providers | Where-Object { ($_.Key -and $_.Key -eq $choice) -or $_.Name -eq $choice } | Select-Object -First 1
         if ($picked -and $picked.Key) {
+            # OpenAI 二级菜单:API Key vs ChatGPT 订阅
+            if ($picked.Name -eq "openai") {
+                $route = Get-OpenAIRoute
+                if ($route -eq "subscription") {
+                    return @{ SubscriptionFlow = $true }
+                }
+            }
             return (Get-PlanUpgrade -Base $picked)
         }
         Write-Warn "无效编号,请输入 0-$visibleMax"
+    }
+}
+
+# 二级菜单:OpenAI 接入方式(API Key vs ChatGPT 订阅 OAuth)
+function Get-OpenAIRoute {
+    Write-Host ""
+    Write-Host "  OpenAI 接入方式(可选):" -ForegroundColor Cyan
+    Write-Host "   1) API Key(按 token 付费,默认)"
+    Write-Host "   2) ChatGPT 订阅(Codex OAuth)"
+    while ($true) {
+        $r = (Read-Host "  请选择 [1/2,直接回车=1]").Trim()
+        switch ($r) {
+            { $_ -in @("", "1") } { return "apikey" }
+            "2" { return "subscription" }
+            default { Write-Warn "无效输入,请输入 1 或 2" }
+        }
+    }
+}
+
+# 订阅路径:让 openclaw configure 接管 OAuth 流程
+function Invoke-SubscriptionFlow {
+    Write-Step "配置 ChatGPT 订阅(OpenAI Codex OAuth)"
+    Write-Host ""
+    Write-Info "接下来由 OpenClaw 接管,请按下列顺序选择:"
+    Write-Host "         1. Where will the Gateway run?  → Local (回车确认)"
+    Write-Host "         2. Model/auth provider          → OpenAI"
+    Write-Host "         3. OpenAI auth method           → OpenAI Codex (ChatGPT OAuth)"
+    Write-Host "         4. 浏览器会自动弹出,完成登录授权"
+    Write-Host "         5. Default model                → 选你订阅包含的模型"
+    Write-Host ""
+
+    $configPath = Join-Path $env:USERPROFILE ".openclaw\openclaw.json"
+    if (-not (Test-Path $configPath)) {
+        Write-Info "首次配置,先用 skip-auth onboard 创建 OpenClaw 基础环境..."
+        $rc = Invoke-OpenClaw -OpenClawArgs @(
+            "onboard", "--non-interactive", "--accept-risk",
+            "--auth-choice", "skip", "--mode", "local",
+            "--gateway-port", "18789", "--gateway-bind", "loopback",
+            "--install-daemon", "--daemon-runtime", "node", "--skip-skills"
+        ) -AllowFailure
+        if ($rc -ne 0) {
+            Write-Err "skip-auth onboard 失败,无法继续订阅配置流程"
+            exit 1
+        }
+        Write-Ok "基础环境就绪"
+        Write-Host ""
+    }
+
+    Write-Info "正在调起 openclaw configure --section model..."
+    Write-Host ""
+
+    # PowerShell 直接调用 openclaw,继承当前终端 stdin/stdout
+    & $script:OpenClawCmd configure --section model
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "openclaw configure 失败,退出码: $LASTEXITCODE"
+        exit $LASTEXITCODE
+    }
+
+    Write-Host ""
+    Write-Ok "OpenAI 订阅配置完成"
+
+    if (Test-GatewayRunning) {
+        Write-Host ""
+        Write-Info "重启 Gateway 让新配置生效..."
+        Invoke-OpenClaw -OpenClawArgs @("gateway", "restart") -AllowFailure | Out-Null
+        Invoke-OpenClaw -OpenClawArgs @("gateway", "probe") -AllowFailure | Out-Null
     }
 }
 
@@ -653,6 +726,11 @@ if ($Provider -or $ApiKey -or $BaseUrl -or -not $Model) {
         switch ($flowState) {
             "provider" {
                 $providerInfo = Select-Provider
+                # 订阅 OAuth 路径:不走后续 model/apikey 状态机,直接交给 openclaw configure
+                if ($providerInfo -and $providerInfo.SubscriptionFlow) {
+                    Invoke-SubscriptionFlow
+                    exit 0
+                }
                 $flowState = "model"
             }
             "model" {

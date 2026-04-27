@@ -196,7 +196,7 @@ select_provider() {
     print_warn "无效编号,请输入 0-${visible_max}" >&2
   done
 
-  # 主厂商选定后,询问是否升级到付费计费方式
+  # 主厂商选定后,询问是否升级到付费计费方式 / 订阅 OAuth
   case "${provider_names[$idx]}" in
     volcengine)
       idx="$(ask_plan_upgrade "$idx" ark-coding 'Coding Plan(智能路由,需在火山方舟控制台单独订阅)')"
@@ -204,8 +204,80 @@ select_provider() {
     qwen)
       idx="$(ask_plan_upgrade "$idx" qwen-token-plan 'Token Plan(智能路由,需在阿里百炼控制台单独订阅)')"
       ;;
+    openai)
+      local route
+      route="$(ask_openai_route)"
+      if [[ "$route" == "subscription" ]]; then
+        printf 'SUBSCRIPTION\n'
+        return
+      fi
+      ;;
   esac
   printf '%s\n' "$idx"
+}
+
+# 二级菜单:OpenAI 接入方式(API Key vs ChatGPT 订阅 OAuth)
+# 返回 "apikey" 或 "subscription"
+ask_openai_route() {
+  printf '\n  OpenAI 接入方式(可选):\n' >&2
+  printf '   1) API Key(按 token 付费,默认)\n' >&2
+  printf '   2) ChatGPT 订阅(Codex OAuth)\n' >&2
+  local route
+  while true; do
+    printf '  请选择 [1/2,直接回车=1]: ' >&2
+    read -r route <&3
+    case "$route" in
+      ""|1) printf 'apikey\n'; return ;;
+      2)    printf 'subscription\n'; return ;;
+      *)    print_warn "无效输入,请输入 1 或 2" >&2 ;;
+    esac
+  done
+}
+
+# 订阅路径:让 openclaw configure 接管 OAuth 流程
+# 首次安装(无 openclaw.json)先跑 onboard --auth-choice skip 建基础架子
+handle_subscription_flow() {
+  step "配置 ChatGPT 订阅(OpenAI Codex OAuth)"
+  printf '\n' >&2
+  print_info "接下来由 OpenClaw 接管,请按下列顺序选择:" >&2
+  printf '         1. Where will the Gateway run?  → Local (回车确认)\n' >&2
+  printf '         2. Model/auth provider          → OpenAI\n' >&2
+  printf '         3. OpenAI auth method           → OpenAI Codex (ChatGPT OAuth)\n' >&2
+  printf '         4. 浏览器会自动弹出,完成登录授权\n' >&2
+  printf '         5. Default model                → 选你订阅包含的模型\n' >&2
+  printf '\n' >&2
+
+  if [[ ! -f "$HOME/.openclaw/openclaw.json" ]]; then
+    print_info "首次配置,先用 skip-auth onboard 创建 OpenClaw 基础环境..." >&2
+    if ! openclaw onboard --non-interactive --accept-risk \
+        --auth-choice skip --mode local \
+        --gateway-port 18789 --gateway-bind loopback \
+        --install-daemon --daemon-runtime node --skip-skills </dev/null; then
+      print_err "skip-auth onboard 失败,无法继续订阅配置流程" >&2
+      exit 1
+    fi
+    print_ok "基础环境就绪" >&2
+    printf '\n' >&2
+  fi
+
+  print_info "正在调起 openclaw configure --section model..." >&2
+  printf '\n' >&2
+
+  # </dev/tty 确保 openclaw 能从终端读输入(脚本通过 curl|bash 跑时 stdin 是管道)
+  if ! openclaw configure --section model </dev/tty; then
+    print_err "openclaw configure 失败"
+    exit 1
+  fi
+
+  printf '\n' >&2
+  print_ok "OpenAI 订阅配置完成"
+
+  if gateway_is_running; then
+    printf '\n' >&2
+    print_info "重启 Gateway 让新配置生效..."
+    openclaw gateway restart </dev/null
+    openclaw gateway probe </dev/null || true
+  fi
 }
 
 # 二级菜单:问用户是要主厂商的标准 API 还是订阅计费方式
@@ -652,6 +724,11 @@ while [[ "$flow_state" != "configured" ]]; do
   case "$flow_state" in
     provider)
       provider_idx="$(select_provider)"
+      # 订阅 OAuth 路径:不走后续 model/apikey 状态机,直接交给 openclaw configure
+      if [[ "$provider_idx" == "SUBSCRIPTION" ]]; then
+        handle_subscription_flow
+        exit 0
+      fi
       provider_name=""
       [[ -n "$provider_idx" ]] && provider_name="${provider_names[$provider_idx]}"
       flow_state="model"
