@@ -7,6 +7,9 @@
     irm https://gitee.com/mijiamiyu/scripts/raw/main/open-openclaw-folder.ps1 | iex
 #>
 
+# ── Process Scope Bypass：让 iex 模式在 Restricted/AllSigned 系统也能跑 ──
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8

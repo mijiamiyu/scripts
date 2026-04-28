@@ -10,6 +10,10 @@ param(
     [string]$Version = ""
 )
 
+# ── Process Scope Bypass：让 iex 模式 + pnpm 装的 openclaw.ps1 都能在 Restricted/AllSigned 系统跑 ──
+# Process Scope 不写注册表、不需要管理员,只活在当前 PowerShell 进程。
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+
 # ── 执行策略自修复：如果当前策略阻止脚本运行，自动以 Bypass 重启 ──
 if ($MyInvocation.MyCommand.Path) {
     try {
