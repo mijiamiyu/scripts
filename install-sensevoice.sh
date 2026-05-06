@@ -252,12 +252,9 @@ fi
 if [[ "$is_running" == "true" ]]; then
     info "检测到 OpenClaw gateway 正在运行(127.0.0.1:18789)"
     if command -v openclaw >/dev/null 2>&1; then
-        info "正在 restart gateway 让新配置生效 ..."
-        if openclaw gateway restart >/dev/null 2>&1; then
-            success "Gateway 已 restart,新配置已生效"
-        else
-            warn "Gateway restart 失败,请手动关掉 OpenClaw 重新启动"
-        fi
+        # 后台发 restart 信号,不等结果
+        nohup openclaw gateway restart >/dev/null 2>&1 &
+        success "已发送 gateway restart 信号(后台执行,十几秒后生效)"
     else
         warn "找不到 openclaw 命令,无法自动 restart"
         warn "请手动关掉 OpenClaw 重新启动"

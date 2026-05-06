@@ -241,14 +241,9 @@ if ($isRunning) {
     Write-Info "检测到 OpenClaw gateway 正在运行(127.0.0.1:18789)"
     $openclawCmd = Get-Command openclaw -ErrorAction SilentlyContinue
     if ($openclawCmd) {
-        Write-Info "正在 restart gateway 让新配置生效 ..."
-        try {
-            $null = & openclaw gateway restart 2>&1
-            Write-Ok "Gateway 已 restart,新配置已生效"
-        } catch {
-            Write-Warn "Gateway restart 失败: $_"
-            Write-Warn "请手动关掉 OpenClaw 重新启动"
-        }
+        # 后台发 restart 信号,不等结果(restart 本身要 stop service + start,可能花十几秒)
+        Start-Job -ScriptBlock { & openclaw gateway restart 2>&1 } | Out-Null
+        Write-Ok "已发送 gateway restart 信号(后台执行,十几秒后生效)"
     } else {
         Write-Warn "找不到 openclaw 命令,无法自动 restart"
         Write-Warn "请手动关掉 OpenClaw 重新启动"
