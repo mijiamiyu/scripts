@@ -96,19 +96,30 @@ if (Test-Path $INSTALL_DIR) {
 New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
 Write-Ok "已创建: $INSTALL_DIR"
 
-# ── 下载函数 ──
+# ── 下载函数(优先 curl.exe 带进度条,回退 Invoke-WebRequest) ──
+$curlExe = (Get-Command curl.exe -ErrorAction SilentlyContinue).Path
 function Download-File {
     param([string]$Url, [string]$Dest, [string]$Label)
     Write-Info "下载 $Label ..."
-    try {
-        Invoke-WebRequest -Uri $Url -OutFile $Dest -UseBasicParsing -TimeoutSec 300
-        $size = (Get-Item $Dest).Length
-        Write-Ok "  -> $Dest ($([math]::Round($size/1MB, 2)) MB)"
-    } catch {
-        Write-Err "下载失败: $Url"
-        Write-Err "  $_"
-        exit 1
+    if ($curlExe) {
+        # curl.exe 自带进度条(Win 10/11 内置)
+        & $curlExe -L --progress-bar --max-time 300 --fail "$Url" -o "$Dest"
+        if ($LASTEXITCODE -ne 0) {
+            Write-Err "下载失败 (curl exit code $LASTEXITCODE): $Url"
+            exit 1
+        }
+    } else {
+        # fallback 老 Win 没 curl.exe 的情况
+        try {
+            Invoke-WebRequest -Uri $Url -OutFile $Dest -UseBasicParsing -TimeoutSec 300
+        } catch {
+            Write-Err "下载失败: $Url"
+            Write-Err "  $_"
+            exit 1
+        }
     }
+    $size = (Get-Item $Dest).Length
+    Write-Ok "  -> $([math]::Round($size/1MB, 2)) MB"
 }
 
 # ── 下载 sherpa-onnx 二进制 ──

@@ -114,13 +114,14 @@ fi
 mkdir -p "$INSTALL_DIR"
 success "已创建: $INSTALL_DIR"
 
-# ── 下载函数 ──
+# ── 下载函数(curl 自带进度条) ──
 download_file() {
     local url="$1"
     local dest="$2"
     local label="$3"
     info "下载 $label ..."
-    if ! curl -fsSL --max-time 300 "$url" -o "$dest"; then
+    # -# 简洁进度条而非全静默
+    if ! curl -fL --progress-bar --max-time 300 "$url" -o "$dest"; then
         error "下载失败: $url"
         exit 1
     fi
@@ -130,7 +131,7 @@ download_file() {
     else
         size=$(stat -c%s "$dest")
     fi
-    success "  -> $dest ($((size / 1024 / 1024)) MB)"
+    success "  -> $((size / 1024 / 1024)) MB"
 }
 
 # ── 下载 sherpa-onnx 二进制 ──
