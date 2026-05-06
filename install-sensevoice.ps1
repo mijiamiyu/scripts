@@ -1,4 +1,4 @@
-﻿# SenseVoice 一键安装脚本 (Windows)
+# SenseVoice 一键安装脚本 (Windows)
 # 用法:
 #   powershell -ExecutionPolicy Bypass -File install-sensevoice.ps1
 # 在线一键安装:
