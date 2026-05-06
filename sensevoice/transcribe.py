@@ -8,13 +8,13 @@
 输入:任何 ffmpeg 能读的格式(wav/mp3/ogg/m4a/flac/...)
 输出:识别文字,打印到 stdout
 
-依赖:
-    - sherpa_onnx (PyPI,打包进 exe)
-    - ffmpeg(优先 exe 同目录的 ffmpeg(.exe),fallback 系统 PATH)
+依赖(全部打包进 exe,学生侧无需任何外部工具):
+    - sherpa_onnx (PyPI)
+    - imageio_ffmpeg (PyPI,提供跨平台 ffmpeg binary)
+    - numpy
 """
 import os
 import sys
-import shutil
 import subprocess
 import tempfile
 import wave
@@ -26,6 +26,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 import numpy as np
 import sherpa_onnx
+import imageio_ffmpeg
 
 
 def read_wav_16k_mono(wav_path: str):
@@ -51,28 +52,9 @@ def get_base_dir() -> str:
     return os.path.dirname(os.path.abspath(__file__))
 
 
-def find_ffmpeg() -> str:
-    """优先找 transcribe 同目录的 ffmpeg(自包含),fallback 系统 PATH"""
-    base = get_base_dir()
-    for name in ("ffmpeg.exe", "ffmpeg"):
-        candidate = os.path.join(base, name)
-        if os.path.isfile(candidate):
-            return candidate
-    sys_ffmpeg = shutil.which("ffmpeg")
-    if sys_ffmpeg:
-        return sys_ffmpeg
-    sys.stderr.write(
-        "ERROR: 找不到 ffmpeg。\n"
-        f"  本地查找位置: {base}\\ffmpeg(.exe)\n"
-        "  系统 PATH 里也没找到 ffmpeg。\n"
-        "  请把 ffmpeg 放到 transcribe 同目录,或装 ffmpeg 到系统 PATH。\n"
-    )
-    sys.exit(2)
-
-
 def transcode_to_wav(src: str) -> str:
-    """用 ffmpeg(同目录优先,系统 PATH 兜底)转成 16kHz mono pcm_s16le wav"""
-    ffmpeg = find_ffmpeg()
+    """用打包进 exe 的 ffmpeg 转成 16kHz mono pcm_s16le wav"""
+    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
     tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
     tmp.close()
     try:

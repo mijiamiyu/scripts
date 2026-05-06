@@ -15,7 +15,6 @@ jobs:
       matrix:
         include:
           - { os: windows-latest, arch: x64,    target: windows-x64,  artifact_name: transcribe.exe }
-          - { os: windows-latest, arch: x86,    target: windows-x86,  artifact_name: transcribe.exe }
           - { os: macos-latest,   arch: arm64,  target: macos-arm64,  artifact_name: transcribe }
           - { os: macos-13,       arch: x64,    target: macos-x64,    artifact_name: transcribe }
     runs-on: ${{ matrix.os }}
@@ -33,24 +32,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install sherpa-onnx pyinstaller numpy imageio-ffmpeg
 
-      - name: pyinstaller build transcribe
+      - name: pyinstaller build (含 ffmpeg)
         working-directory: sensevoice
         run: |
-          pyinstaller --onefile --collect-all sherpa_onnx --name transcribe transcribe.py
-
-      - name: extract bundled ffmpeg into dist/
-        shell: bash
-        run: |
-          python -c "
-          import imageio_ffmpeg, shutil, os, sys
-          src = imageio_ffmpeg.get_ffmpeg_exe()
-          ext = '.exe' if sys.platform.startswith('win') else ''
-          dst = 'sensevoice/dist/ffmpeg' + ext
-          shutil.copy(src, dst)
-          os.chmod(dst, 0o755)
-          print(f'ffmpeg: {src} -> {dst}')
-          print(f'size: {os.path.getsize(dst) / 1024 / 1024:.1f} MB')
-          "
+          pyinstaller --onefile --collect-all sherpa_onnx --collect-all imageio_ffmpeg --name transcribe transcribe.py
 
       - name: list dist
         working-directory: sensevoice/dist
@@ -60,5 +45,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: transcribe-${{ matrix.target }}
-          path: sensevoice/dist/
+          path: sensevoice/dist/${{ matrix.artifact_name }}
           if-no-files-found: error
