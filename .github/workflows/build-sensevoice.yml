@@ -21,7 +21,8 @@ jobs:
         include:
           - { os: windows-latest, arch: x64,    target: windows-x64,  artifact_name: transcribe.exe }
           - { os: macos-latest,   arch: arm64,  target: macos-arm64,  artifact_name: transcribe }
-          - { os: macos-13,       arch: x64,    target: macos-x64,    artifact_name: transcribe }
+          # macos-13 (Intel) 删除:sherpa-onnx PyPI 没 Intel wheel(走源码编译 30+ 分钟超时)
+          # macOS Intel 学生跑 arm64 binary 走 Rosetta 2 转译,性能损失小
     runs-on: ${{ matrix.os }}
     name: build-${{ matrix.target }}
     steps:
