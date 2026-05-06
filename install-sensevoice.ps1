@@ -42,22 +42,17 @@ $OPENCLAW_DIR = Join-Path $HOME ".openclaw"
 $OPENCLAW_CFG = Join-Path $OPENCLAW_DIR "openclaw.json"
 
 # ── 平台检测 ──
-# Is64BitOperatingSystem 看的是系统真实位数(不受 PowerShell 进程位数影响)
 $isArm = ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") -or ($env:PROCESSOR_ARCHITEW6432 -eq "ARM64")
 if ($isArm) {
-    Write-Err "Windows ARM64 暂不支持(sherpa-onnx 未发布该平台二进制)"
-    Write-Warn "如需支持,请手工编译或等 sherpa-onnx 后续版本"
+    Write-Err "Windows ARM64 暂不支持(transcribe binary 未发布该平台版本)"
     exit 1
 }
-if ([Environment]::Is64BitOperatingSystem) {
-    $WIN_ARCH = "x64"
-    $WIN_BINARY_NAME = "sherpa-onnx-windows-x64.exe"
-    $WIN_BINARY_SIZE_MB = 21
-} else {
-    $WIN_ARCH = "x86"
-    $WIN_BINARY_NAME = "sherpa-onnx-windows-x86.exe"
-    $WIN_BINARY_SIZE_MB = 18
+if (-not [Environment]::Is64BitOperatingSystem) {
+    Write-Err "需要 64 位 Windows,32 位系统不支持"
+    exit 1
 }
+$WIN_BINARY_NAME = "transcribe-windows-x64.exe"
+$WIN_BINARY_SIZE_MB = 62
 
 # ── 检测 OpenClaw 是否装 ──
 Write-Step "0/7  检查环境"
@@ -122,11 +117,10 @@ function Download-File {
     Write-Ok "  -> $([math]::Round($size/1MB, 2)) MB"
 }
 
-# ── 下载 sherpa-onnx 二进制 ──
-Write-Step "2/7  下载 sherpa-onnx 引擎(Windows $WIN_ARCH,约 $WIN_BINARY_SIZE_MB MB)"
-Write-Info "检测到系统架构: Windows $WIN_ARCH"
-$binPath = Join-Path $INSTALL_DIR "sherpa-onnx.exe"
-Download-File -Url "$RELEASE_BASE/$WIN_BINARY_NAME" -Dest $binPath -Label "sherpa-onnx.exe ($WIN_ARCH)"
+# ── 下载 transcribe 二进制(自包含 sherpa-onnx + ffmpeg) ──
+Write-Step "2/7  下载语音识别引擎(约 $WIN_BINARY_SIZE_MB MB)"
+$binPath = Join-Path $INSTALL_DIR "transcribe.exe"
+Download-File -Url "$RELEASE_BASE/$WIN_BINARY_NAME" -Dest $binPath -Label "transcribe.exe"
 
 # ── 下载模型 3 块 ──
 Write-Step "3/7  下载语音识别模型(228 MB,分 3 块)"
@@ -191,12 +185,7 @@ cfg.tools.media.audio = {
   models: [{
     type: 'cli',
     command: process.argv[3],
-    args: [
-      '--sense-voice-model=' + process.argv[4],
-      '--tokens=' + process.argv[5],
-      '--num-threads=1',
-      '{{MediaPath}}'
-    ],
+    args: ['{{MediaPath}}'],
     timeoutSeconds: 45
   }]
 };
@@ -209,7 +198,7 @@ console.log('OK');
 $mergeScriptPath = Join-Path $tmpDir "_merge.js"
 Set-Content -Path $mergeScriptPath -Value $nodeMergeScript -Encoding UTF8
 
-$result = & node $mergeScriptPath $OPENCLAW_CFG $binPath $modelPath $tokensPath
+$result = & node $mergeScriptPath $OPENCLAW_CFG $binPath
 if ($result -ne "OK") {
     Write-Err "写入 openclaw.json 失败"
     exit 1

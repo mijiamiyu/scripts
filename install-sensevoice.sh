@@ -32,21 +32,24 @@ OPENCLAW_CFG="$OPENCLAW_DIR/openclaw.json"
 OS="$(uname -s)"
 ARCH="$(uname -m)"
 case "$OS-$ARCH" in
-    Darwin-arm64)         PLATFORM="macos-arm64" ;;
-    Darwin-x86_64)        PLATFORM="macos-x64" ;;
-    Linux-x86_64)         PLATFORM="linux-x64" ;;
-    Linux-aarch64)        PLATFORM="linux-arm64" ;;
-    *)
-        error "不支持的平台: $OS $ARCH"
+    Darwin-arm64)
+        PLATFORM="macos-arm64"
+        BINARY_FILE="transcribe-macos-arm64"
+        ;;
+    Darwin-x86_64)
+        # Intel Mac 跑 arm64 binary 走 Rosetta 2(性能损失 <10%)
+        PLATFORM="macos-x64-rosetta"
+        BINARY_FILE="transcribe-macos-arm64"
+        info "检测到 Intel Mac,将使用 arm64 binary + Rosetta 2 转译"
+        info "如果未装 Rosetta 2,跑 transcribe 时系统会自动提示安装"
+        ;;
+    Linux-*)
+        error "Linux 平台未提供预编译 transcribe binary"
+        error "(夜校课程主要支持 Win/Mac;如果是 Linux 学生请联系讲师)"
         exit 1
         ;;
-esac
-
-case "$PLATFORM" in
-    macos-arm64) BINARY_FILE="sherpa-onnx-macos-arm64.tar.bz2"; EXTRACTED_DIR_PREFIX="sherpa-onnx-v1.13.0-osx-arm64-shared" ;;
-    macos-x64)   BINARY_FILE="sherpa-onnx-macos-x64.tar.bz2";   EXTRACTED_DIR_PREFIX="sherpa-onnx-v1.13.0-osx-x64-shared" ;;
-    linux-*)
-        warn "Linux 平台尚未提供预编译二进制,建议手动安装 sherpa-onnx"
+    *)
+        error "不支持的平台: $OS $ARCH"
         exit 1
         ;;
 esac
@@ -134,25 +137,15 @@ download_file() {
     success "  -> $((size / 1024 / 1024)) MB"
 }
 
-# ── 下载 sherpa-onnx 二进制 ──
-step "2/7  下载 sherpa-onnx 引擎"
+# ── 下载 transcribe 二进制(自包含 sherpa-onnx + ffmpeg) ──
+step "2/7  下载语音识别引擎"
 info "检测到系统平台: $PLATFORM ($OS $ARCH)"
 TMP_DIR=$(mktemp -d -t sensevoice-install-XXXXXX)
 trap "rm -rf $TMP_DIR" EXIT
 
-TARBALL="$TMP_DIR/$BINARY_FILE"
-download_file "$RELEASE_BASE/$BINARY_FILE" "$TARBALL" "$BINARY_FILE"
-
-info "解压到 $INSTALL_DIR ..."
-tar -xjf "$TARBALL" -C "$INSTALL_DIR"
-EXTRACTED_PATH="$INSTALL_DIR/$EXTRACTED_DIR_PREFIX"
-if [[ ! -f "$EXTRACTED_PATH/bin/sherpa-onnx-offline" ]]; then
-    error "解压后找不到 sherpa-onnx-offline,目录结构异常"
-    ls -la "$EXTRACTED_PATH/bin/" 2>/dev/null || true
-    exit 1
-fi
-chmod +x "$EXTRACTED_PATH/bin/"*
-BIN_PATH="$EXTRACTED_PATH/bin/sherpa-onnx-offline"
+BIN_PATH="$INSTALL_DIR/transcribe"
+download_file "$RELEASE_BASE/$BINARY_FILE" "$BIN_PATH" "transcribe"
+chmod +x "$BIN_PATH"
 success "二进制可用: $BIN_PATH"
 
 # ── 下载模型 3 块 + tokens + manifest ──
@@ -209,12 +202,7 @@ cfg.tools.media.audio = {
   models: [{
     type: 'cli',
     command: process.argv[3],
-    args: [
-      '--sense-voice-model=' + process.argv[4],
-      '--tokens=' + process.argv[5],
-      '--num-threads=1',
-      '{{MediaPath}}'
-    ],
+    args: ['{{MediaPath}}'],
     timeoutSeconds: 45
   }]
 };
@@ -224,7 +212,7 @@ fs.renameSync(cfgPath + '.tmp', cfgPath);
 console.log('OK');
 EOF
 
-RESULT=$(node "$MERGE_JS" "$OPENCLAW_CFG" "$BIN_PATH" "$MODEL_PATH" "$TOKENS_PATH")
+RESULT=$(node "$MERGE_JS" "$OPENCLAW_CFG" "$BIN_PATH")
 if [[ "$RESULT" != "OK" ]]; then
     error "写入 openclaw.json 失败"
     exit 1
