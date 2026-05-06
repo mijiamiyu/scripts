@@ -8,6 +8,11 @@ on:
       - '.github/workflows/build-sensevoice.yml'
   workflow_dispatch:
 
+# 同分支新 push 自动 cancel 旧的 in-progress runs(防止旧 commit 浪费 CI minutes)
+concurrency:
+  group: build-sensevoice-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     strategy:
