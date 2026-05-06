@@ -31,14 +31,28 @@ jobs:
       - name: install deps
         run: |
           python -m pip install --upgrade pip
-          pip install sherpa-onnx pyinstaller numpy
+          pip install sherpa-onnx pyinstaller numpy imageio-ffmpeg
 
-      - name: pyinstaller build
+      - name: pyinstaller build transcribe
         working-directory: sensevoice
         run: |
           pyinstaller --onefile --collect-all sherpa_onnx --name transcribe transcribe.py
 
-      - name: list output
+      - name: extract bundled ffmpeg into dist/
+        shell: bash
+        run: |
+          python -c "
+          import imageio_ffmpeg, shutil, os, sys
+          src = imageio_ffmpeg.get_ffmpeg_exe()
+          ext = '.exe' if sys.platform.startswith('win') else ''
+          dst = 'sensevoice/dist/ffmpeg' + ext
+          shutil.copy(src, dst)
+          os.chmod(dst, 0o755)
+          print(f'ffmpeg: {src} -> {dst}')
+          print(f'size: {os.path.getsize(dst) / 1024 / 1024:.1f} MB')
+          "
+
+      - name: list dist
         working-directory: sensevoice/dist
         shell: bash
         run: ls -la
@@ -46,5 +60,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: transcribe-${{ matrix.target }}
-          path: sensevoice/dist/${{ matrix.artifact_name }}
+          path: sensevoice/dist/
           if-no-files-found: error

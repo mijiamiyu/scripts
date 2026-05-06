@@ -9,8 +9,8 @@
 输出:识别文字,打印到 stdout
 
 依赖:
-    - sherpa_onnx (PyPI)
-    - 系统 PATH 里有 ffmpeg(Win 学生通常装了 OpenClaw 同时装了 ffmpeg)
+    - sherpa_onnx (PyPI,打包进 exe)
+    - ffmpeg(优先 exe 同目录的 ffmpeg(.exe),fallback 系统 PATH)
 """
 import os
 import sys
@@ -51,17 +51,33 @@ def get_base_dir() -> str:
     return os.path.dirname(os.path.abspath(__file__))
 
 
-def transcode_to_wav(src: str) -> str:
-    """用系统 ffmpeg 转成 16kHz mono pcm_s16le wav"""
-    if not shutil.which("ffmpeg"):
-        sys.stderr.write("ERROR: ffmpeg 未在系统 PATH 里。请装 ffmpeg 后重试。\n")
-        sys.exit(2)
+def find_ffmpeg() -> str:
+    """优先找 transcribe 同目录的 ffmpeg(自包含),fallback 系统 PATH"""
+    base = get_base_dir()
+    for name in ("ffmpeg.exe", "ffmpeg"):
+        candidate = os.path.join(base, name)
+        if os.path.isfile(candidate):
+            return candidate
+    sys_ffmpeg = shutil.which("ffmpeg")
+    if sys_ffmpeg:
+        return sys_ffmpeg
+    sys.stderr.write(
+        "ERROR: 找不到 ffmpeg。\n"
+        f"  本地查找位置: {base}\\ffmpeg(.exe)\n"
+        "  系统 PATH 里也没找到 ffmpeg。\n"
+        "  请把 ffmpeg 放到 transcribe 同目录,或装 ffmpeg 到系统 PATH。\n"
+    )
+    sys.exit(2)
 
+
+def transcode_to_wav(src: str) -> str:
+    """用 ffmpeg(同目录优先,系统 PATH 兜底)转成 16kHz mono pcm_s16le wav"""
+    ffmpeg = find_ffmpeg()
     tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
     tmp.close()
     try:
         subprocess.run(
-            ["ffmpeg", "-y", "-i", src, "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", tmp.name],
+            [ffmpeg, "-y", "-i", src, "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", tmp.name],
             check=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
