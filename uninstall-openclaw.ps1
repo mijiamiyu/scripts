@@ -151,6 +151,27 @@ function Remove-UserData {
     }
 }
 
+function Remove-BinDir {
+    # 扩展二进制目录(sensevoice / 其他扩展的本地 binary)。装机产物,默认总是删
+    $binDir = "$HOME\.openclaw-bin"
+    if (Test-Path $binDir) {
+        try {
+            $size = (Get-ChildItem $binDir -Recurse -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+            $sizeMB = [math]::Round($size / 1MB, 1)
+        } catch { $sizeMB = "?" }
+        Write-Info "正在删除扩展二进制目录 $binDir（约 $sizeMB MB，sensevoice 等）..."
+        try {
+            Remove-Item $binDir -Recurse -Force -ErrorAction Stop
+            Write-Ok "扩展二进制目录已删除"
+        } catch {
+            Write-Err "删除失败: $_"
+            Write-Warn "可能某个进程占用文件，请关掉所有相关程序后重试"
+        }
+    } else {
+        Write-Info "$binDir 不存在，跳过"
+    }
+}
+
 function Clear-EnvVars {
     Write-Info "清理 OpenClaw 相关用户环境变量..."
     $vars = @("CLAWHUB_REGISTRY", "OPENCLAW_VERSION", "OPENCLAW_GATEWAY_TOKEN")
@@ -274,7 +295,8 @@ function Main {
         } else {
             Write-Host "    4. 删除 $HOME\.openclaw 全部用户数据 (含会话历史 / 缓存)" -ForegroundColor White
         }
-        Write-Host "    5. 清理 CLAWHUB_REGISTRY 等用户环境变量" -ForegroundColor White
+        Write-Host "    5. 删除 $HOME\.openclaw-bin 扩展二进制 (sensevoice 等)" -ForegroundColor White
+        Write-Host "    6. 清理 CLAWHUB_REGISTRY 等用户环境变量" -ForegroundColor White
         Write-Host ""
         $confirm = (Read-Host "  确认继续？[y/N]").Trim()
         if ($confirm -notmatch "^[Yy]") {
@@ -284,23 +306,27 @@ function Main {
     }
 
     # Step 2: 杀进程
-    Write-Step "步骤 1/5: 终止运行中的进程"
+    Write-Step "步骤 1/6: 终止运行中的进程"
     Stop-OpenclawProcesses
 
     # Step 3: 注销 Scheduled Task
-    Write-Step "步骤 2/5: 注销 Scheduled Task"
+    Write-Step "步骤 2/6: 注销 Scheduled Task"
     Remove-ScheduledTasks
 
     # Step 4: 卸载全局包
-    Write-Step "步骤 3/5: 卸载全局 npm 包"
+    Write-Step "步骤 3/6: 卸载全局 npm 包"
     Remove-GlobalPackage
 
     # Step 5: 删用户数据
-    Write-Step "步骤 4/5: 处理用户数据目录"
+    Write-Step "步骤 4/6: 处理用户数据目录"
     Remove-UserData
 
-    # Step 6: 清环境变量
-    Write-Step "步骤 5/5: 清理环境变量"
+    # Step 6: 删扩展二进制目录
+    Write-Step "步骤 5/6: 删除扩展二进制目录"
+    Remove-BinDir
+
+    # Step 7: 清环境变量
+    Write-Step "步骤 6/6: 清理环境变量"
     Clear-EnvVars
 
     # Step 7: 验证

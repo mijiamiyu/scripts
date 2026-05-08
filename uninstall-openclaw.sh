@@ -188,6 +188,22 @@ remove_user_data() {
   fi
 }
 
+remove_bin_dir() {
+  # 扩展二进制目录(sensevoice / 其他扩展的本地 binary)。装机产物,默认总是删
+  if [[ -d "$HOME/.openclaw-bin" ]]; then
+    local size
+    size=$(du -sh "$HOME/.openclaw-bin" 2>/dev/null | awk '{print $1}')
+    info "正在删除扩展二进制目录 ~/.openclaw-bin（约 ${size:-?}，sensevoice 等）..."
+    if rm -rf "$HOME/.openclaw-bin"; then
+      success "扩展二进制目录已删除"
+    else
+      err "删除失败，可能某个进程占用文件"
+    fi
+  else
+    info "~/.openclaw-bin 不存在，跳过"
+  fi
+}
+
 clear_env_vars() {
   info "清理 OpenClaw 写入 shell profile 的环境变量..."
 
@@ -301,7 +317,8 @@ main() {
     else
       printf "    4. 删除 ~/.openclaw 全部用户数据 (含会话历史 / 缓存)\n"
     fi
-    printf "    5. 从 shell profile 移除 CLAWHUB_REGISTRY 等环境变量\n\n"
+    printf "    5. 删除 ~/.openclaw-bin 扩展二进制 (sensevoice 等)\n"
+    printf "    6. 从 shell profile 移除 CLAWHUB_REGISTRY 等环境变量\n\n"
     printf "  确认继续？[y/N] "
     read -r confirm
     if [[ ! "$confirm" =~ ^[Yy] ]]; then
@@ -310,19 +327,22 @@ main() {
     fi
   fi
 
-  step "步骤 1/5: 终止运行中的进程"
+  step "步骤 1/6: 终止运行中的进程"
   stop_openclaw_processes
 
-  step "步骤 2/5: 注销 Gateway 服务（launchd / systemd）"
+  step "步骤 2/6: 注销 Gateway 服务（launchd / systemd）"
   uninstall_gateway_service
 
-  step "步骤 3/5: 卸载全局 npm 包"
+  step "步骤 3/6: 卸载全局 npm 包"
   remove_global_package
 
-  step "步骤 4/5: 处理用户数据目录"
+  step "步骤 4/6: 处理用户数据目录"
   remove_user_data
 
-  step "步骤 5/5: 清理环境变量 / shell profile"
+  step "步骤 5/6: 删除扩展二进制目录"
+  remove_bin_dir
+
+  step "步骤 6/6: 清理环境变量 / shell profile"
   clear_env_vars
 
   verify_cleanup
