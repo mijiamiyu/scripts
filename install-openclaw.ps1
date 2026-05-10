@@ -832,7 +832,7 @@ function Run-PnpmInstall {
         $psi = New-Object System.Diagnostics.ProcessStartInfo
         $psi.FileName = "cmd.exe"
         $pkgSpec = if ($script:OpenClawVersion) { "openclaw@$($script:OpenClawVersion)" } else { "openclaw@latest" }
-        $psi.Arguments = "/c `"$PnpmCmd`" add -g $pkgSpec"
+        $psi.Arguments = "/c `"$PnpmCmd`" add -g $pkgSpec --registry=https://registry.npmmirror.com"
         $psi.UseShellExecute = $false
         $psi.RedirectStandardOutput = $true
         $psi.RedirectStandardError = $true
