@@ -7,8 +7,8 @@ PATH_LINE='export PATH="/Library/Frameworks/Python.framework/Versions/3.13/bin:$
 
 echo "正在写入 Python 3.13 PATH 到 ~/.zprofile 和 ~/.bash_profile ..."
 
-echo "$PATH_LINE" >> ~/.zprofile
-echo "$PATH_LINE" >> ~/.bash_profile
+grep -qF "$PATH_LINE" ~/.zprofile 2>/dev/null || echo "$PATH_LINE" >> ~/.zprofile
+grep -qF "$PATH_LINE" ~/.bash_profile 2>/dev/null || echo "$PATH_LINE" >> ~/.bash_profile
 
 echo "正在让当前脚本环境优先使用 Python 3.13 ..."
 
