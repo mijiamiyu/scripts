@@ -125,6 +125,24 @@ function Remove-GlobalPackage {
     } catch {}
 
     if (-not $removed) { Write-Info "未在 pnpm / npm 全局列表中发现 openclaw（可能已被卸载）" }
+
+    # 兜底:删 npm 全局 bin 里 openclaw 残留 shim(应对装失败 / rollback 漏删的孤儿)
+    try {
+        $npmPrefixCandidates = @()
+        try { $p = (& npm prefix -g 2>$null).Trim(); if ($p) { $npmPrefixCandidates += $p } } catch {}
+        try { $p = (& npm config get prefix 2>$null).Trim(); if ($p) { $npmPrefixCandidates += $p } } catch {}
+        $npmPrefixCandidates = $npmPrefixCandidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -Unique
+
+        foreach ($prefix in $npmPrefixCandidates) {
+            @('openclaw', 'openclaw.cmd', 'openclaw.ps1') | ForEach-Object {
+                $shim = Join-Path $prefix $_
+                if (Test-Path -LiteralPath $shim) {
+                    Remove-Item -LiteralPath $shim -Force -ErrorAction SilentlyContinue
+                    Write-Ok "已清理残留 shim: $shim"
+                }
+            }
+        }
+    } catch {}
 }
 
 function Remove-UserData {
