@@ -589,38 +589,25 @@ step_install_openclaw() {
     info "正在安装 OpenClaw 最新版，请耐心等待..."
   fi
 
-  local log_file done_file
+  local log_file
   log_file=$(mktemp)
-  done_file=$(mktemp)
-  rm -f "$done_file"
+  local pkg_spec="openclaw@${OPENCLAW_VERSION:-latest}"
 
-  (
-    set +e
-    local pkg_spec="openclaw@${OPENCLAW_VERSION:-latest}"
-    npm_install_global "$pkg_spec" > "$log_file" 2>&1
-    echo $? > "$done_file"
-  ) &
-
-  _progress_bar "$done_file"
-
-  wait 2>/dev/null || true
-  local exit_code
-  exit_code=$(cat "$done_file")
-
-  local bar="" i
-  for (( i = 0; i < 30; i++ )); do bar+="█"; done
+  # tee 把 npm 实时输出转发给学员看 + 同时写 log 用于失败诊断
+  echo ""
+  npm_install_global "$pkg_spec" 2>&1 | tee "$log_file"
+  local exit_code=${PIPESTATUS[0]}
+  echo ""
 
   if [[ "$exit_code" == "0" ]]; then
-    printf "\r  安装进度 [%s] 100%%\n" "$bar"
     persist_npm_global_bin
     success "OpenClaw 安装完成"
-    rm -f "$log_file" "$done_file"
+    rm -f "$log_file"
     return 0
   fi
 
-  printf "\r  安装进度 [%s] 失败\n" "$bar"
-  error "OpenClaw 安装失败"
-  rm -f "$log_file" "$done_file"
+  error "OpenClaw 安装失败 (exit code: $exit_code)"
+  rm -f "$log_file"
   return 1
 }
 

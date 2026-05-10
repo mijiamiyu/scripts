@@ -673,7 +673,7 @@ function Use-NodeV22Dir {
 }
 
 function Step-CheckNode {
-    Write-Step "步骤 1/7: 准备 Node.js 环境"
+    Write-Step "步骤 1/6: 准备 Node.js 环境"
 
     $hasNvm = Test-NvmInstalled
 
@@ -750,7 +750,7 @@ function Step-CheckNode {
 }
 
 function Step-CheckGit {
-    Write-Step "步骤 2/7: 准备 Git 环境"
+    Write-Step "步骤 2/6: 准备 Git 环境"
 
     $ver = Get-GitVersion
     if ($ver) {
@@ -769,7 +769,7 @@ function Step-CheckGit {
 }
 
 function Step-SetMirror {
-    Write-Step "步骤 3/7: 设置国内镜像"
+    Write-Step "步骤 3/6: 设置国内镜像"
 
     $env:npm_config_registry = "https://registry.npmmirror.com"
     Write-Ok "npm 镜像已临时设置为 https://registry.npmmirror.com（仅本次安装生效）"
@@ -787,108 +787,54 @@ function Step-SetMirror {
     return $true
 }
 
-function Step-InstallPnpm {
-    Write-Step "步骤 4/7: 安装 pnpm"
+# Step-InstallPnpm 已移除 — 改用 npm 装 OpenClaw,不再需要 pnpm
 
-    $pnpmCmd = Get-PnpmCmd
-    try {
-        $pnpmVer = (& $pnpmCmd -v 2>$null).Trim()
-        if ($pnpmVer) {
-            Write-Ok "pnpm $pnpmVer 已安装，跳过安装步骤"
-            Ensure-PnpmHome
+function Run-NpmInstall {
+    param([string]$NpmCmd, [string]$Label = "安装")
+
+    $pkgSpec = if ($script:OpenClawVersion) { "openclaw@$($script:OpenClawVersion)" } else { "openclaw@latest" }
+    $logFile = Join-Path $env:TEMP "openclaw-install-$(Get-Random).log"
+
+    # 临时把 NodeBinDir 放到 PATH 最前,让子进程用对的 node;函数返回前还原
+    $oldPath = $env:PATH
+    if ($script:NodeBinDir) {
+        $cleanParts = $oldPath.Split(";") | Where-Object {
+            if (-not $_) { return $false }
+            $nodeInDir = Join-Path $_ "node.exe"
+            if ((Test-Path $nodeInDir) -and ($_ -ne $script:NodeBinDir)) { return $false }
             return $true
         }
-    } catch {}
-
-    $npmCmd = Get-NpmCmd
-    Write-Info "正在安装 pnpm..."
-    try {
-        $savedEAP = $ErrorActionPreference
-        $ErrorActionPreference = "SilentlyContinue"
-        & $npmCmd install -g pnpm 2>$null | Out-Null
-        $npmExit = $LASTEXITCODE
-        $ErrorActionPreference = $savedEAP
-        if ($npmExit -ne 0) { throw "npm install -g pnpm 失败 (exit code: $npmExit)" }
-        $pnpmCmd = Get-PnpmCmd
-        Write-Info "正在验证 pnpm 安装..."
-        $pnpmVer = (& $pnpmCmd -v 2>$null).Trim()
-        Write-Ok "pnpm $pnpmVer 安装成功"
-
-        Write-Info "正在配置 pnpm 全局路径 (pnpm setup)..."
-        try { & $pnpmCmd setup 2>$null | Out-Null } catch { Write-Warn "pnpm setup 执行未成功，不影响后续安装" }
-
-        Ensure-PnpmHome
-        return $true
-    } catch {
-        Write-Err "pnpm 安装失败: $_"
-        return $false
+        $env:PATH = "$($script:NodeBinDir);$($cleanParts -join ';')"
     }
-}
-
-function Run-PnpmInstall {
-    param([string]$PnpmCmd, [string]$Label = "安装")
-
-    try {
-        $psi = New-Object System.Diagnostics.ProcessStartInfo
-        $psi.FileName = "cmd.exe"
-        $pkgSpec = if ($script:OpenClawVersion) { "openclaw@$($script:OpenClawVersion)" } else { "openclaw@latest" }
-        $psi.Arguments = "/c `"$PnpmCmd`" add -g $pkgSpec --registry=https://registry.npmmirror.com"
-        $psi.UseShellExecute = $false
-        $psi.RedirectStandardOutput = $true
-        $psi.RedirectStandardError = $true
-        $psi.CreateNoWindow = $true
-
-        # 确保子进程使用正确版本的 Node.js
-        if ($script:NodeBinDir) {
-            $childPath = $env:PATH
-            $cleanParts = $childPath.Split(";") | Where-Object {
-                if (-not $_) { return $false }
-                $nodeInDir = Join-Path $_ "node.exe"
-                if ((Test-Path $nodeInDir) -and ($_ -ne $script:NodeBinDir)) { return $false }
-                return $true
-            }
-            $psi.EnvironmentVariables["PATH"] = "$($script:NodeBinDir);$($cleanParts -join ';')"
-        }
-
-        $proc = [System.Diagnostics.Process]::Start($psi)
-        $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
-        $stderrTask = $proc.StandardError.ReadToEndAsync()
-    } catch {
-        Write-Err "启动${Label}进程失败: $_"
-        return @{ Success = $false; Stderr = ""; Stdout = "" }
-    }
-
-    $progress = 0
-    $width = 30
-    while (-not $proc.HasExited) {
-        if ($progress -lt 30) { $progress += 3 }
-        elseif ($progress -lt 60) { $progress += 2 }
-        elseif ($progress -lt 90) { $progress += 1 }
-        if ($progress -gt 90) { $progress = 90 }
-        $filled = [math]::Floor($progress * $width / 100)
-        $empty = $width - $filled
-        $bar = ([string]::new([char]0x2588, $filled)) + ([string]::new([char]0x2591, $empty))
-        Write-Host "`r  ${Label}进度 [$bar] $($progress.ToString().PadLeft(3))%" -NoNewline
-        Start-Sleep -Seconds 1
-    }
-
-    $stdout = $stdoutTask.GetAwaiter().GetResult()
-    $stderr = $stderrTask.GetAwaiter().GetResult()
 
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-    $fullBar = [string]::new([char]0x2588, $width)
-    if ($proc.ExitCode -eq 0) {
-        Write-Host "`r  ${Label}进度 [$fullBar] 100%"
-        return @{ Success = $true; Stderr = $stderr; Stdout = $stdout }
+    Write-Host ""
+    $exitCode = -1
+    try {
+        # 用 cmd /c 包 stderr 合并,避开 PS 5.1 把 npm warn 包成 NativeCommandError 的坑
+        # Tee 实时转发到学员终端 + 写 log 文件
+        & cmd.exe /c "`"$NpmCmd`" install -g $pkgSpec --registry=https://registry.npmmirror.com 2>&1" |
+            Tee-Object -FilePath $logFile
+        $exitCode = $LASTEXITCODE
+    } catch {
+        Write-Err "${Label}启动失败: $_"
+    } finally {
+        $env:PATH = $oldPath
     }
+    Write-Host ""
 
-    Write-Host "`r  ${Label}进度 [$fullBar] 失败"
-    return @{ Success = $false; Stderr = $stderr; Stdout = $stdout; ExitCode = $proc.ExitCode }
+    $output = if (Test-Path -LiteralPath $logFile) { Get-Content -LiteralPath $logFile -Raw } else { "" }
+    Remove-Item -LiteralPath $logFile -ErrorAction SilentlyContinue
+
+    if ($exitCode -eq 0) {
+        return @{ Success = $true; Stderr = $output; Stdout = $output }
+    }
+    return @{ Success = $false; Stderr = $output; Stdout = $output; ExitCode = $exitCode }
 }
 
 function Step-InstallOpenClaw {
-    Write-Step "步骤 5/7: 安装 OpenClaw"
+    Write-Step "步骤 4/6: 安装 OpenClaw"
 
     $gitVer = Get-GitVersion
     if (-not $gitVer) {
@@ -903,10 +849,10 @@ function Step-InstallOpenClaw {
         Write-Info "正在安装 OpenClaw 最新版，请耐心等待..."
     }
 
-    $pnpmCmd = Get-PnpmCmd
-    if (-not (Test-Path $pnpmCmd -ErrorAction SilentlyContinue)) {
-        try { Get-Command $pnpmCmd -ErrorAction Stop | Out-Null } catch {
-            Write-Err "找不到 pnpm 命令"
+    $npmCmd = Get-NpmCmd
+    if (-not (Test-Path $npmCmd -ErrorAction SilentlyContinue)) {
+        try { Get-Command $npmCmd -ErrorAction Stop | Out-Null } catch {
+            Write-Err "找不到 npm 命令"
             return $false
         }
     }
@@ -918,21 +864,8 @@ function Step-InstallOpenClaw {
     $env:GIT_CONFIG_KEY_1 = "url.https://github.com/.insteadOf"
     $env:GIT_CONFIG_VALUE_1 = "ssh://git@github.com/"
 
-    function Try-InstallWithCleanup([string]$PnpmCmd, [ref]$Result) {
-        $combinedOutput = "$($Result.Value.Stderr)`n$($Result.Value.Stdout)"
-        $isPnpmStoreError = $combinedOutput -match "VIRTUAL_STORE_DIR" -or $combinedOutput -match "broken lockfile" -or $combinedOutput -match "not compatible with current pnpm"
-        if ($isPnpmStoreError) {
-            Write-Warn "检测到 pnpm 全局 store 状态不兼容，正在清理后重试..."
-            $pnpmGlobalDir = Join-Path (Get-LocalAppData) "pnpm\global"
-            if (Test-Path $pnpmGlobalDir) {
-                Remove-Item $pnpmGlobalDir -Recurse -Force -ErrorAction SilentlyContinue
-                Write-Info "已清理 $pnpmGlobalDir"
-            }
-            try { & $PnpmCmd store prune 2>$null } catch {}
-            $retryResult = Run-PnpmInstall -PnpmCmd $PnpmCmd -Label "重试安装"
-            $Result.Value = $retryResult
-            return $retryResult.Success
-        }
+    # Try-InstallWithCleanup 已简化(原 pnpm-specific store 清理逻辑,npm 不需要)
+    function Try-InstallWithCleanup([string]$NpmCmd, [ref]$Result) {
         return $false
     }
 
@@ -956,10 +889,10 @@ function Step-InstallOpenClaw {
             Write-Info "OpenClaw 安装位置: $($found.Dir)"
         } else {
             try {
-                $pnpmBin = (& $pnpmCmd bin -g 2>$null).Trim()
-                if ($pnpmBin -and (Test-Path $pnpmBin)) {
-                    Add-ToUserPath $pnpmBin
-                    Write-Info "pnpm 全局 bin 目录: $pnpmBin"
+                $npmPrefix = (& $npmCmd prefix -g 2>$null).Trim()
+                if ($npmPrefix -and (Test-Path $npmPrefix)) {
+                    Add-ToUserPath $npmPrefix
+                    Write-Info "npm 全局 bin 目录: $npmPrefix"
                 }
             } catch {}
         }
@@ -1026,11 +959,11 @@ function Step-InstallOpenClaw {
             try {
                 Set-GitMirror $mirror
                 Write-Info "正在使用镜像 $mirror 安装..."
-                $r = Run-PnpmInstall -PnpmCmd $pnpmCmd -Label "安装"
+                $r = Run-NpmInstall -NpmCmd $npmCmd -Label "安装"
                 Clear-GitMirror
                 if ($r.Success) { return $r }
                 $rr = $r
-                if (Try-InstallWithCleanup $pnpmCmd ([ref]$rr)) { return $rr }
+                if (Try-InstallWithCleanup $npmCmd ([ref]$rr)) { return $rr }
             } catch {
                 Clear-GitMirror
             }
@@ -1064,9 +997,9 @@ function Step-InstallOpenClaw {
 
     # ── 安装 ──
 
-    $result = Run-PnpmInstall -PnpmCmd $pnpmCmd -Label "安装"
+    $result = Run-NpmInstall -NpmCmd $npmCmd -Label "安装"
     if ($result.Success) { return (On-InstallSuccess) }
-    if (Try-InstallWithCleanup $pnpmCmd ([ref]$result)) { return (On-InstallSuccess) }
+    if (Try-InstallWithCleanup $npmCmd ([ref]$result)) { return (On-InstallSuccess) }
 
     # 直连安装也失败了，给用户兜底选择
     $combinedOutput = "$($result.Stderr)`n$($result.Stdout)"
@@ -1102,7 +1035,7 @@ function Step-InstallOpenClaw {
 }
 
 function Step-Verify {
-    Write-Step "步骤 6/7: 验证安装结果"
+    Write-Step "步骤 5/6: 验证安装结果"
 
     Refresh-PathEnv
     Ensure-PnpmHome
@@ -1126,16 +1059,16 @@ function Step-Verify {
         }
     }
 
-    # 再尝试 pnpm bin -g 兜底
+    # 再尝试 npm prefix -g 兜底
     try {
-        $pnpmCmd = Get-PnpmCmd
-        $pnpmBin = (& $pnpmCmd bin -g 2>$null).Trim()
-        if ($pnpmBin -and (Test-Path $pnpmBin)) {
-            $env:PATH = "$pnpmBin;$env:PATH"
-            Add-ToUserPath $pnpmBin
-            Write-Info "已将 pnpm 全局 bin 目录添加到 PATH: $pnpmBin"
+        $npmCmd = Get-NpmCmd
+        $npmPrefix = (& $npmCmd prefix -g 2>$null).Trim()
+        if ($npmPrefix -and (Test-Path $npmPrefix)) {
+            $env:PATH = "$npmPrefix;$env:PATH"
+            Add-ToUserPath $npmPrefix
+            Write-Info "已将 npm 全局 bin 目录添加到 PATH: $npmPrefix"
 
-            $openclawCmd = Join-Path $pnpmBin "openclaw.cmd"
+            $openclawCmd = Join-Path $npmPrefix "openclaw.cmd"
             if (Test-Path $openclawCmd) {
                 $ver = $null
                 try { $ver = (& $openclawCmd -v 2>$null).Trim() } catch {}
@@ -1153,15 +1086,15 @@ function Step-Verify {
     Write-Host "  请尝试以下步骤排查:" -ForegroundColor Yellow
     Write-Host "    1. 关闭当前终端，打开一个新的 PowerShell 窗口" -ForegroundColor Yellow
     Write-Host "    2. 运行 openclaw -v 检查是否可用" -ForegroundColor Yellow
-    Write-Host "    3. 如果仍然不可用，运行以下命令查看 pnpm 全局 bin 目录:" -ForegroundColor Yellow
-    Write-Host "       pnpm bin -g" -ForegroundColor Cyan
+    Write-Host "    3. 如果仍然不可用，运行以下命令查看 npm 全局 bin 目录:" -ForegroundColor Yellow
+    Write-Host "       npm prefix -g" -ForegroundColor Cyan
     Write-Host "    4. 将输出的目录手动添加到系统 PATH 环境变量" -ForegroundColor Yellow
     Write-Host ""
     return $false
 }
 
 function Step-Onboard {
-    Write-Step "步骤 7/7: 配置 OpenClaw"
+    Write-Step "步骤 6/6: 配置 OpenClaw"
 
     $scriptUrl = "https://gitee.com/mijiamiyu/scripts/raw/main/change-openclaw-model.ps1"
     Write-Info "正在加载中文模型配置脚本: $scriptUrl"
@@ -1234,7 +1167,6 @@ function Main {
     if (-not (Step-CheckNode))       { Write-Host "`n按任意键退出..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown"); return }
     if (-not (Step-CheckGit))        { Write-Host "`n按任意键退出..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown"); return }
     if (-not (Step-SetMirror))       { Write-Host "`n按任意键退出..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown"); return }
-    if (-not (Step-InstallPnpm))     { Write-Host "`n按任意键退出..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown"); return }
     if (-not (Step-InstallOpenClaw)) { Write-Host "`n按任意键退出..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown"); return }
     if (-not (Step-Verify))          { Write-Host "`n按任意键退出..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown"); return }
     Step-Onboard | Out-Null
