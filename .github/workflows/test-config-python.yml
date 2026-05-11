@@ -1,0 +1,112 @@
+name: Test config-python.sh
+
+on:
+  push:
+    paths:
+      - 'config-python.sh'
+      - '.github/workflows/test-config-python.yml'
+  pull_request:
+    paths:
+      - 'config-python.sh'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Python pkg
+        id: cache-python
+        uses: actions/cache@v4
+        with:
+          path: python.pkg
+          key: python-3.13.3-macos11
+
+      - name: Download Python 3.13.3 pkg (from python.org)
+        if: steps.cache-python.outputs.cache-hit != 'true'
+        run: curl -fsSL -o python.pkg https://www.python.org/ftp/python/3.13.3/python-3.13.3-macos11.pkg
+
+      - name: Install Python pkg (simulate student double-click)
+        run: |
+          sudo installer -pkg python.pkg -target /
+          /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 --version
+
+      - name: First run of config-python.sh
+        run: bash config-python.sh
+
+      - name: Verify PATH written to .zprofile
+        run: |
+          if ! grep -qF "Python.framework/Versions/3.13/bin" ~/.zprofile; then
+            echo "::error::PATH not in .zprofile"
+            cat ~/.zprofile
+            exit 1
+          fi
+          echo "OK: .zprofile contains PATH"
+
+      - name: Verify PATH written to .bash_profile
+        run: |
+          if ! grep -qF "Python.framework/Versions/3.13/bin" ~/.bash_profile; then
+            echo "::error::PATH not in .bash_profile"
+            exit 1
+          fi
+          echo "OK: .bash_profile contains PATH"
+
+      - name: Verify python3 resolves to framework version
+        run: |
+          source ~/.zprofile
+          which python3
+          ver=$(python3 --version)
+          if [[ "$ver" != *"3.13"* ]]; then
+            echo "::error::python3 not 3.13: $ver"
+            exit 1
+          fi
+          echo "OK: python3 = $ver (from framework)"
+
+      - name: Second run (test idempotency)
+        run: bash config-python.sh
+
+      - name: Verify .zprofile not duplicated
+        run: |
+          count=$(grep -cF "Python.framework/Versions/3.13/bin" ~/.zprofile)
+          if [ "$count" -ne 1 ]; then
+            echo "::error::Idempotency failed: expected 1 PATH line, got $count"
+            cat ~/.zprofile
+            exit 1
+          fi
+          echo "OK: .zprofile still has exactly 1 PATH line after 2 runs"
+
+      - name: Verify .bash_profile not duplicated
+        run: |
+          count=$(grep -cF "Python.framework/Versions/3.13/bin" ~/.bash_profile)
+          if [ "$count" -ne 1 ]; then
+            echo "::error::Idempotency failed: expected 1 PATH line, got $count"
+            cat ~/.bash_profile
+            exit 1
+          fi
+          echo "OK: .bash_profile still has exactly 1 PATH line after 2 runs"
+
+      - name: Verify pip config uses tsinghua mirror
+        run: |
+          pip_conf="$HOME/Library/Application Support/pip/pip.conf"
+          if [ ! -f "$pip_conf" ]; then
+            echo "::error::pip.conf does not exist: $pip_conf"
+            exit 1
+          fi
+          if ! grep -q "tuna" "$pip_conf"; then
+            echo "::error::pip.conf does not contain tsinghua mirror"
+            cat "$pip_conf"
+            exit 1
+          fi
+          echo "OK: pip configured with tsinghua mirror"
+          cat "$pip_conf"
+
+      - name: Verify Install Certificates.command exists
+        run: |
+          cert="/Applications/Python 3.13/Install Certificates.command"
+          if [ ! -f "$cert" ]; then
+            echo "::error::Certificate script not found: $cert"
+            exit 1
+          fi
+          echo "OK: certificate script exists"
