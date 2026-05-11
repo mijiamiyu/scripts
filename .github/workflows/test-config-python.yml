@@ -89,18 +89,19 @@ jobs:
 
       - name: Verify pip config uses tsinghua mirror
         run: |
-          pip_conf="$HOME/Library/Application Support/pip/pip.conf"
-          if [ ! -f "$pip_conf" ]; then
-            echo "::error::pip.conf does not exist: $pip_conf"
+          source ~/.zprofile
+          # 让 pip 自己列出当前配置(不去猜 pip.conf 文件位置 — pip 版本不同位置不同:
+          #   ~/.config/pip/pip.conf / ~/Library/Application Support/pip/pip.conf / ~/.pip/pip.conf)
+          out=$(python3 -m pip config list 2>&1)
+          echo "$out"
+          if echo "$out" | grep -q "tuna"; then
+            echo "OK: pip configured with tsinghua mirror"
+          else
+            echo "::error::pip not configured with tsinghua mirror"
+            # 顺便找一下 pip.conf 都在哪,帮 debug
+            find "$HOME/.pip" "$HOME/.config/pip" "$HOME/Library/Application Support/pip" -name "pip.conf" 2>/dev/null || true
             exit 1
           fi
-          if ! grep -q "tuna" "$pip_conf"; then
-            echo "::error::pip.conf does not contain tsinghua mirror"
-            cat "$pip_conf"
-            exit 1
-          fi
-          echo "OK: pip configured with tsinghua mirror"
-          cat "$pip_conf"
 
       - name: Verify Install Certificates.command exists
         run: |
