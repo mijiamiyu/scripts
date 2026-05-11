@@ -82,17 +82,28 @@ function Add-ToUserPath {
 }
 
 function Ensure-ExecutionPolicy {
+    # 用 Get-ExecutionPolicy(无 scope)看 effective 策略,而不是 -Scope CurrentUser。
+    # 原因:Win 11 家庭版默认 CurrentUser=Undefined + LocalMachine=Restricted,
+    # 只看 CurrentUser 拿到 Undefined 不进 if,实际 effective 是 Restricted 已经拦着 .ps1 了。
     try {
-        $currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
-        if ($currentPolicy -eq "Restricted" -or $currentPolicy -eq "AllSigned") {
-            Write-Info "当前 PowerShell 执行策略为 $currentPolicy，pnpm 的脚本无法运行"
-            Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
-            Write-Ok "已将执行策略设置为 RemoteSigned（仅当前用户）"
+        $effective = Get-ExecutionPolicy
+        if ($effective -eq "Restricted" -or $effective -eq "AllSigned") {
+            Write-Info "当前 PowerShell 执行策略为 $effective，会拦截 openclaw.ps1 启动器"
+            Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force -ErrorAction Stop
+            $verify = Get-ExecutionPolicy
+            if ($verify -eq "RemoteSigned" -or $verify -eq "Unrestricted" -or $verify -eq "Bypass") {
+                Write-Ok "已永久允许当前用户跑 .ps1 脚本(ExecutionPolicy=$verify)"
+            } else {
+                Write-Warn "设置可能被组策略覆盖,当前 effective=$verify"
+                Write-Warn "如果以后跑 openclaw 报'禁止运行脚本',显式打 openclaw.cmd 绕过"
+            }
+        } else {
+            Write-Info "PowerShell 执行策略已是 $effective，跳过设置"
         }
     } catch {
-        Write-Warn "无法自动设置执行策略"
+        Write-Warn "无法自动设置执行策略: $_"
         Write-Host "  请手动执行以下命令后重新打开终端:" -ForegroundColor Yellow
-        Write-Host "    Set-ExecutionPolicy -Scope CurrentUser RemoteSigned" -ForegroundColor Cyan
+        Write-Host "    Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force" -ForegroundColor Cyan
     }
 }
 
