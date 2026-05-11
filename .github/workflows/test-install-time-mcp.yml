@@ -1,0 +1,96 @@
+name: Test install-time-mcp.sh
+
+on:
+  push:
+    paths:
+      - 'install-time-mcp.sh'
+      - '.github/workflows/test-install-time-mcp.yml'
+  pull_request:
+    paths:
+      - 'install-time-mcp.sh'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Fake OpenClaw dir (script expects it to exist)
+        run: |
+          mkdir -p ~/.openclaw
+          # 不预写 openclaw.json,让脚本 fresh 写
+
+      - name: Run install-time-mcp.sh
+        run: bash install-time-mcp.sh
+
+      - name: Verify mcp-server-time installed and runnable
+        run: |
+          python3 -m mcp_server_time --help
+
+      - name: Verify openclaw.json has mcp.servers.time
+        run: |
+          cfg=~/.openclaw/openclaw.json
+          if [ ! -f "$cfg" ]; then
+            echo "::error::openclaw.json not created at $cfg"
+            exit 1
+          fi
+          echo "=== openclaw.json content ==="
+          cat "$cfg"
+          echo "============================="
+
+          # 解析 mcp.servers.time
+          cmd=$(python3 -c "import json; print(json.load(open('$cfg'))['mcp']['servers']['time']['command'])")
+          if [ "$cmd" != "python3" ]; then
+            echo "::error::command should be 'python3', got: '$cmd'"
+            exit 1
+          fi
+          echo "OK: mcp.servers.time.command = python3"
+
+          args=$(python3 -c "import json; print(' '.join(json.load(open('$cfg'))['mcp']['servers']['time']['args']))")
+          if [[ "$args" != *"mcp_server_time"* ]]; then
+            echo "::error::args missing mcp_server_time: $args"
+            exit 1
+          fi
+          echo "OK: mcp.servers.time.args = $args"
+
+          # 检查 timezone 参数(脚本设 Asia/Shanghai)
+          if [[ "$args" != *"Asia/Shanghai"* ]]; then
+            echo "::error::args missing --local-timezone=Asia/Shanghai: $args"
+            exit 1
+          fi
+          echo "OK: --local-timezone=Asia/Shanghai present"
+
+      - name: Verify backup file created
+        run: |
+          if compgen -G "$HOME/.openclaw/openclaw.json.bak*" > /dev/null; then
+            echo "OK: backup .bak file created"
+            ls -la ~/.openclaw/openclaw.json.bak*
+          else
+            echo "::warning::no .bak file (might be fresh install with no prior config)"
+          fi
+
+      - name: Second run (test idempotency)
+        run: bash install-time-mcp.sh
+
+      - name: Verify only one mcp.servers.time entry
+        run: |
+          cfg=~/.openclaw/openclaw.json
+          count=$(python3 -c "import json; print(len(json.load(open('$cfg'))['mcp']['servers']))")
+          echo "mcp.servers count: $count"
+          # 跑两遍 servers 仍应只一个(time)
+          if [ "$count" -ne 1 ]; then
+            echo "::error::expected 1 mcp.servers entry, got $count"
+            cat "$cfg"
+            exit 1
+          fi
+          echo "OK: idempotent (still 1 server after 2 runs)"
