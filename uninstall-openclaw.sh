@@ -260,8 +260,35 @@ verify_cleanup() {
     success "npm 全局已无 openclaw"
   fi
 
+  # 看到 PATH 残留就直接物理删,不只 err
   if command -v openclaw >/dev/null 2>&1; then
-    err "openclaw 命令仍在 PATH: $(command -v openclaw)"; issues=$((issues+1))
+    warn "PATH 里还有 openclaw,正在物理删除..."
+    # 找所有 openclaw 同名 shim(which -a 给所有匹配,which 只给第一个)
+    local found
+    if command -v which >/dev/null 2>&1; then
+      found=$(which -a openclaw 2>/dev/null || true)
+    else
+      found=$(command -v openclaw 2>/dev/null || true)
+    fi
+    while IFS= read -r f; do
+      [[ -z "$f" ]] && continue
+      local dir base
+      dir=$(dirname "$f")
+      base=$(basename "$f")
+      # 主文件 + 同目录 .cmd/.ps1 兄弟(Mac/Linux 通常没有,但 Git Bash on Win 可能有)
+      for sibling in "$f" "$dir/$base.cmd" "$dir/$base.ps1"; do
+        if [[ -e "$sibling" || -L "$sibling" ]]; then
+          rm -f "$sibling" 2>/dev/null
+          [[ ! -e "$sibling" && ! -L "$sibling" ]] && success "已删除 PATH 残留: $sibling"
+        fi
+      done
+    done <<< "$found"
+    hash -r 2>/dev/null || true
+    if command -v openclaw >/dev/null 2>&1; then
+      err "still found(删除失败,文件可能被占用): $(command -v openclaw)"; issues=$((issues+1))
+    else
+      success "openclaw 命令已不在 PATH 中"
+    fi
   else
     success "openclaw 命令已不在 PATH 中"
   fi

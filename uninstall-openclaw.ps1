@@ -126,19 +126,24 @@ function Remove-GlobalPackage {
 
     if (-not $removed) { Write-Info "未在 pnpm / npm 全局列表中发现 openclaw（可能已被卸载）" }
 
-    # 兜底:删 npm 全局 bin 里 openclaw 残留 shim(应对装失败 / rollback 漏删的孤儿)
+    # 兜底:用 where.exe 找 PATH 里所有 openclaw 系列 shim 直接删
+    # (where.exe 走 PATH 不依赖 npm,绕开 npm prefix -g 在 PS 5.1 上的 NativeCommandError 坑;
+    #  也能覆盖非标准 npm 全局目录,比如 C:\Users\<u>\AppData\Local\nodejs\)
     try {
-        $npmPrefixCandidates = @()
-        try { $p = (& npm prefix -g 2>$null).Trim(); if ($p) { $npmPrefixCandidates += $p } } catch {}
-        try { $p = (& npm config get prefix 2>$null).Trim(); if ($p) { $npmPrefixCandidates += $p } } catch {}
-        $npmPrefixCandidates = $npmPrefixCandidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -Unique
-
-        foreach ($prefix in $npmPrefixCandidates) {
-            @('openclaw', 'openclaw.cmd', 'openclaw.ps1') | ForEach-Object {
-                $shim = Join-Path $prefix $_
-                if (Test-Path -LiteralPath $shim) {
-                    Remove-Item -LiteralPath $shim -Force -ErrorAction SilentlyContinue
+        $allShims = @()
+        foreach ($name in @('openclaw', 'openclaw.cmd', 'openclaw.ps1')) {
+            $found = & where.exe $name 2>$null
+            if ($LASTEXITCODE -eq 0 -and $found) {
+                $allShims += @($found)
+            }
+        }
+        foreach ($shim in ($allShims | Where-Object { $_ } | ForEach-Object { $_.Trim() } | Where-Object { $_ } | Select-Object -Unique)) {
+            if (Test-Path -LiteralPath $shim) {
+                Remove-Item -LiteralPath $shim -Force -ErrorAction SilentlyContinue
+                if (-not (Test-Path -LiteralPath $shim)) {
                     Write-Ok "已清理残留 shim: $shim"
+                } else {
+                    Write-Warn "删除失败(可能被占用): $shim"
                 }
             }
         }
@@ -228,12 +233,34 @@ function Verify-Cleanup {
         } else { Write-Ok "npm 全局已无 openclaw" }
     } catch {}
 
-    # 3. 命令可执行性
+    # 3. 命令可执行性(看到 PATH 残留就直接物理删,不只 warn)
     try {
         $w = & where.exe openclaw 2>$null
         if ($w) {
-            Write-Warn "still found: $w"
-            $issues++
+            Write-Warn "PATH 里还有 openclaw,正在物理删除..."
+            foreach ($f in @($w)) {
+                $f = $f.Trim()
+                if (-not $f) { continue }
+                # 同目录的 .cmd / .ps1 / 无扩展名 兄弟 shim 一并删
+                $dir = Split-Path -Parent $f
+                $base = [System.IO.Path]::GetFileNameWithoutExtension($f)
+                @($f, (Join-Path $dir "$base.cmd"), (Join-Path $dir "$base.ps1"), (Join-Path $dir $base)) |
+                    Select-Object -Unique |
+                    ForEach-Object {
+                        if (Test-Path -LiteralPath $_) {
+                            Remove-Item -LiteralPath $_ -Force -ErrorAction SilentlyContinue
+                            if (-not (Test-Path -LiteralPath $_)) { Write-Ok "已删除 PATH 残留: $_" }
+                        }
+                    }
+            }
+            # 再验证一次
+            $w2 = & where.exe openclaw 2>$null
+            if ($w2) {
+                Write-Err "still found(删除失败,文件可能被占用): $w2"
+                $issues++
+            } else {
+                Write-Ok "openclaw 命令已不在 PATH 中"
+            }
         } else { Write-Ok "openclaw 命令已不在 PATH 中" }
     } catch { Write-Ok "openclaw 命令已不在 PATH 中" }
 
