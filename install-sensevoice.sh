@@ -8,6 +8,9 @@
 
 set -euo pipefail
 
+# 清掉学员机器可能残留的代理 env(VPN/翻墙软件关掉后留的),避免 curl 走死代理连不上 gitee
+unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy ALL_PROXY all_proxy 2>/dev/null || true
+
 # ── 颜色输出 ──
 RED='\033[0;31m'
 GREEN='\033[0;32m'

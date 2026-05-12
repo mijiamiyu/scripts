@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# 清掉学员机器可能残留的代理 env(VPN/翻墙软件关掉后留的),避免 pip 走死代理连不上清华源
+unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy ALL_PROXY all_proxy 2>/dev/null || true
+
 PY_VERSION="3.13"
 PY_BIN="/Library/Frameworks/Python.framework/Versions/${PY_VERSION}/bin"
 PY_APP="/Applications/Python ${PY_VERSION}"

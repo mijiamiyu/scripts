@@ -33,6 +33,14 @@ if ($MyInvocation.MyCommand.Path) {
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
 $ErrorActionPreference = "Stop"
+
+# 清掉学员机器可能残留的代理 env(VPN/翻墙软件关掉后留的),避免 npm 走死代理连不上
+$env:HTTP_PROXY = $null
+$env:HTTPS_PROXY = $null
+$env:http_proxy = $null
+$env:https_proxy = $null
+$env:ALL_PROXY = $null
+$env:all_proxy = $null
 $ProgressPreference = "SilentlyContinue"
 
 if ($PSVersionTable.PSVersion.Major -lt 5) {
