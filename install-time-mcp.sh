@@ -54,18 +54,37 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 success "Python 可用: $(python3 --version)"
 
-# ── 1/4  装 Time MCP 包 ──
-step "1/4  装 mcp-server-time(走清华源)"
-info "pip install -i $PIP_INDEX $PKG_NAME"
-if ! python3 -m pip install -i "$PIP_INDEX" "$PKG_NAME"; then
-    error "pip install 失败"
+# ── 1/4  装 Time MCP 包(多镜像 fallback) ──
+step "1/4  装 mcp-server-time"
+
+PIP_MIRRORS=(
+    "清华源|https://pypi.tuna.tsinghua.edu.cn/simple"
+    "阿里云|https://mirrors.aliyun.com/pypi/simple"
+    "腾讯云|https://mirrors.cloud.tencent.com/pypi/simple"
+    "华为云|https://mirrors.huaweicloud.com/repository/pypi/simple"
+)
+
+installed=false
+for entry in "${PIP_MIRRORS[@]}"; do
+    name="${entry%%|*}"
+    url="${entry##*|}"
+    info "尝试 ${name}: ${url}"
+    if python3 -m pip install -i "$url" "$PKG_NAME"; then
+        success "mcp-server-time 已装好 (镜像: ${name})"
+        installed=true
+        break
+    fi
+    warn "${name} 装失败,尝试下一个镜像..."
+done
+
+if [[ "$installed" != "true" ]]; then
+    error "所有镜像源都装失败"
     error "可能原因:"
     error "  1. Python 装在系统目录(系统 Python),无写权限"
     error "     -> 加 --user 选项,或用 brew 装一个用户级 Python"
-    error "  2. 网络问题(清华源连不上)"
+    error "  2. 公司网络 / 防火墙拦了所有 PyPI 镜像"
     exit 1
 fi
-success "mcp-server-time 已装好"
 
 # ── 2/4  写入 openclaw.json ──
 step "2/4  写入 OpenClaw 配置(mcp.servers.time)"

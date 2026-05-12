@@ -47,13 +47,13 @@ Write-Step "0/4  检查环境"
 
 if (-not (Test-Path $OPENCLAW_DIR)) {
     Write-Err "未找到 ~/.openclaw/ 目录,请先装 OpenClaw"
-    exit 1
+    return
 }
 Write-Ok "OpenClaw 配置目录: $OPENCLAW_DIR"
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
     Write-Err "未找到 node 命令。OpenClaw 依赖 Node.js,请先装 OpenClaw"
-    exit 1
+    return
 }
 Write-Ok "Node.js 可用: $((node --version))"
 
@@ -61,24 +61,44 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
     Write-Err "未找到 python 命令"
     Write-Err "请先装 Python 3.10+:https://www.python.org/downloads/"
     Write-Err "(安装时务必勾选 'Add Python to PATH')"
-    exit 1
+    return
 }
 $pyVer = (& python --version) 2>&1
 Write-Ok "Python 可用: $pyVer"
 
-# ── 1/4  装 Time MCP 包 ──
-Write-Step "1/4  装 mcp-server-time(走清华源)"
-Write-Info "pip install -i $PIP_INDEX $PKG_NAME"
-& python -m pip install -i $PIP_INDEX $PKG_NAME
-if ($LASTEXITCODE -ne 0) {
-    Write-Err "pip install 失败(exit code $LASTEXITCODE)"
+# ── 1/4  装 Time MCP 包(多镜像 fallback) ──
+Write-Step "1/4  装 mcp-server-time"
+
+$pipMirrors = @(
+    @{ Name = '清华源'; Url = 'https://pypi.tuna.tsinghua.edu.cn/simple' },
+    @{ Name = '阿里云'; Url = 'https://mirrors.aliyun.com/pypi/simple' },
+    @{ Name = '腾讯云'; Url = 'https://mirrors.cloud.tencent.com/pypi/simple' },
+    @{ Name = '华为云'; Url = 'https://mirrors.huaweicloud.com/repository/pypi/simple' }
+)
+
+$installed = $false
+foreach ($m in $pipMirrors) {
+    Write-Info "尝试 $($m.Name): $($m.Url)"
+    & python -m pip install -i $m.Url $PKG_NAME
+    if ($LASTEXITCODE -eq 0) {
+        Write-Ok "mcp-server-time 已装好 (镜像: $($m.Name))"
+        $installed = $true
+        break
+    }
+    Write-Warn "$($m.Name) 装失败 (exit $LASTEXITCODE),尝试下一个镜像..."
+}
+
+if (-not $installed) {
+    Write-Err "所有镜像源都装失败"
     Write-Err "可能原因:"
     Write-Err "  1. Python 装在系统目录(如 anaconda 在 ProgramData),无写权限"
     Write-Err "     -> 用管理员 PowerShell 重跑,或换装 python.org 用户级 Python"
-    Write-Err "  2. 网络问题(清华源连不上)"
-    exit 1
+    Write-Err "  2. 公司网络 / 防火墙拦了所有 PyPI 镜像"
+    Write-Host ""
+    Write-Host "  按任意键退出..." -ForegroundColor Yellow
+    try { $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") } catch {}
+    return
 }
-Write-Ok "mcp-server-time 已装好"
 
 # ── 2/4  写入 openclaw.json ──
 Write-Step "2/4  写入 OpenClaw 配置(mcp.servers.time)"
@@ -114,7 +134,7 @@ $result = & node $mergeScriptPath $OPENCLAW_CFG "python" $MODULE_NAME $LOCAL_TZ
 if ($result -ne "OK") {
     Write-Err "写入 openclaw.json 失败"
     Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue
-    exit 1
+    return
 }
 Write-Ok "已写入 $OPENCLAW_CFG"
 if (Test-Path "$OPENCLAW_CFG.bak") {
