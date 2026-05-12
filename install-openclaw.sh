@@ -702,7 +702,7 @@ main() {
       skip_msg="已是指定版本 v$OPENCLAW_VERSION"
     fi
     if [[ "$skip_reinstall" == "true" ]]; then
-      success "OpenClaw $existing_ver $skip_msg，跳过环境检测，直接进入模型配置"
+      success "OpenClaw $existing_ver ${skip_msg}，跳过环境检测，直接进入模型配置"
       echo -e "\n${GREEN}🦞 你的龙虾已就位！${NC}\n"
       echo ""
       step_onboard
