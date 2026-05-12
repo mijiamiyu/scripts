@@ -58,8 +58,8 @@ success "Python 可用: $(python3 --version)"
 step "1/4  装 mcp-server-time"
 
 PIP_MIRRORS=(
-    "清华源|https://pypi.tuna.tsinghua.edu.cn/simple"
     "阿里云|https://mirrors.aliyun.com/pypi/simple"
+    "清华源|https://pypi.tuna.tsinghua.edu.cn/simple"
     "腾讯云|https://mirrors.cloud.tencent.com/pypi/simple"
     "华为云|https://mirrors.huaweicloud.com/repository/pypi/simple"
 )

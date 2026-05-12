@@ -70,8 +70,8 @@ Write-Ok "Python 可用: $pyVer"
 Write-Step "1/4  装 mcp-server-time"
 
 $pipMirrors = @(
-    @{ Name = '清华源'; Url = 'https://pypi.tuna.tsinghua.edu.cn/simple' },
     @{ Name = '阿里云'; Url = 'https://mirrors.aliyun.com/pypi/simple' },
+    @{ Name = '清华源'; Url = 'https://pypi.tuna.tsinghua.edu.cn/simple' },
     @{ Name = '腾讯云'; Url = 'https://mirrors.cloud.tencent.com/pypi/simple' },
     @{ Name = '华为云'; Url = 'https://mirrors.huaweicloud.com/repository/pypi/simple' }
 )
