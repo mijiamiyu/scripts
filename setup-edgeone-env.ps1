@@ -1,4 +1,4 @@
-# EdgeOne Pages 培训环境一键装(Windows)
+﻿# EdgeOne Pages 培训环境一键装(Windows)
 # 装 Node.js LTS + 全局切 npm 国内镜像源 + 装 edgeone CLI
 
 # ── Process Scope Bypass(防 ExecutionPolicy 拦截)──
@@ -247,9 +247,4 @@ Write-Host ""
 Write-Host "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
 Write-Host "  EdgeOne Pages 培训环境装好" -ForegroundColor Green
 Write-Host "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
-Write-Host ""
-Write-Host "  下一步:" -ForegroundColor Cyan
-Write-Host "    1. 重开终端(让 PATH 生效)"
-Write-Host "    2. 打开 WorkBuddy"
-Write-Host "    3. 跟它说: 帮我做个餐厅官网,然后部署到 EdgeOne Pages"
 Write-Host ""

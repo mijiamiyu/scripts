@@ -80,13 +80,18 @@ jobs:
         shell: powershell
         run: powershell -ExecutionPolicy Bypass -File .\setup-edgeone-env.ps1
 
-      - name: Verify Node
-        shell: powershell
-        run: node -v
-
-      - name: Verify npm registry == npmmirror
+      - name: Verify in fresh PowerShell session (模拟新开窗口)
         shell: powershell
         run: |
+          # 重读注册表 PATH(模拟新开 powershell 窗口拿到的 env)
+          $machinePath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+          $userPath    = [Environment]::GetEnvironmentVariable("PATH", "User")
+          $env:PATH = "$machinePath;$userPath"
+
+          Write-Host "=== node ==="
+          node -v
+
+          Write-Host "=== npm registry ==="
           $reg = (npm config get registry).Trim()
           Write-Host "npm registry = $reg"
           if ($reg -ne "https://registry.npmmirror.com" -and $reg -ne "https://registry.npmmirror.com/") {
@@ -95,13 +100,7 @@ jobs:
           }
           Write-Host "OK: registry 切到 npmmirror 成功"
 
-      - name: Verify edgeone CLI installed
-        shell: powershell
-        run: edgeone -v
-
-      - name: Verify edgeone CLI >= 1.2.30
-        shell: powershell
-        run: |
+          Write-Host "=== edgeone CLI ==="
           $eo = (edgeone -v 2>&1 | Out-String).Trim()
           Write-Host "edgeone CLI raw output: $eo"
           if ($eo -match '(\d+)\.(\d+)\.(\d+)') {
