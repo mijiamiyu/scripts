@@ -1,0 +1,162 @@
+name: Test setup-edgeone-env
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'setup-edgeone-env.ps1'
+      - 'setup-edgeone-env.sh'
+      - '.github/workflows/test-setup-edgeone-env.yml'
+  pull_request:
+    paths:
+      - 'setup-edgeone-env.ps1'
+      - 'setup-edgeone-env.sh'
+  workflow_dispatch:
+
+jobs:
+  test-mac:
+    name: Test on macOS (ARM64)
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run setup-edgeone-env.sh
+        run: bash ./setup-edgeone-env.sh
+
+      - name: Verify Node
+        run: node -v
+
+      - name: Verify npm registry == npmmirror
+        run: |
+          REG=$(npm config get registry)
+          echo "npm registry = $REG"
+          # npm 可能在末尾加 / 也可能不加,容忍两种
+          if [[ "$REG" != "https://registry.npmmirror.com" && "$REG" != "https://registry.npmmirror.com/" ]]; then
+            echo "::error::registry 未生效,期望 npmmirror,实际 $REG"
+            exit 1
+          fi
+          echo "OK: registry 切到 npmmirror 成功"
+
+      - name: Verify edgeone CLI installed
+        run: edgeone -v
+
+      - name: Verify edgeone CLI >= 1.2.30
+        run: |
+          EO=$(edgeone -v 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          echo "edgeone CLI version: $EO"
+          python3 -c "
+          import sys
+          v = '$EO'.split('.')
+          ok = int(v[0]) > 1 or (int(v[0]) == 1 and (int(v[1]) > 2 or (int(v[1]) == 2 and int(v[2]) >= 30)))
+          sys.exit(0 if ok else 1)
+          " || { echo "::error::edgeone CLI 版本 $EO 低于 1.2.30"; exit 1; }
+          echo "OK: edgeone CLI $EO >= 1.2.30"
+
+      - name: Verify PATH persisted to ~/.zshrc (if script wrote it)
+        run: |
+          if grep -q "/.local/nodejs/bin" ~/.zshrc 2>/dev/null; then
+            echo "OK: PATH 永久写入 ~/.zshrc"
+          else
+            echo "INFO: 脚本跳过装 Node 路径(runner 预装),~/.zshrc 未改动"
+          fi
+
+  test-win:
+    name: Test on Windows
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run setup-edgeone-env.ps1
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File .\setup-edgeone-env.ps1
+
+      - name: Verify Node
+        shell: powershell
+        run: node -v
+
+      - name: Verify npm registry == npmmirror
+        shell: powershell
+        run: |
+          $reg = (npm config get registry).Trim()
+          Write-Host "npm registry = $reg"
+          if ($reg -ne "https://registry.npmmirror.com" -and $reg -ne "https://registry.npmmirror.com/") {
+            Write-Host "::error::registry 未生效,期望 npmmirror,实际 $reg"
+            exit 1
+          }
+          Write-Host "OK: registry 切到 npmmirror 成功"
+
+      - name: Verify edgeone CLI installed
+        shell: powershell
+        run: edgeone -v
+
+      - name: Verify edgeone CLI >= 1.2.30
+        shell: powershell
+        run: |
+          $eo = (edgeone -v 2>&1 | Out-String).Trim()
+          Write-Host "edgeone CLI raw output: $eo"
+          if ($eo -match '(\d+)\.(\d+)\.(\d+)') {
+            $vm = [int]$Matches[1]; $vn = [int]$Matches[2]; $vp = [int]$Matches[3]
+            $ver = "$vm.$vn.$vp"
+            Write-Host "edgeone CLI version: $ver"
+            $ok = ($vm -gt 1) -or ($vm -eq 1 -and ($vn -gt 2 -or ($vn -eq 2 -and $vp -ge 30)))
+            if (-not $ok) {
+              Write-Host "::error::edgeone CLI 版本 $ver 低于 1.2.30"
+              exit 1
+            }
+            Write-Host "OK: edgeone CLI $ver >= 1.2.30"
+          } else {
+            Write-Host "::error::无法解析 edgeone CLI 版本号"
+            exit 1
+          }
+
+  test-linux:
+    name: Test on Linux (Ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run setup-edgeone-env.sh
+        run: bash ./setup-edgeone-env.sh
+
+      - name: Verify Node
+        run: node -v
+
+      - name: Verify npm registry == npmmirror
+        run: |
+          REG=$(npm config get registry)
+          echo "npm registry = $REG"
+          if [[ "$REG" != "https://registry.npmmirror.com" && "$REG" != "https://registry.npmmirror.com/" ]]; then
+            echo "::error::registry 未生效,期望 npmmirror,实际 $REG"
+            exit 1
+          fi
+          echo "OK: registry 切到 npmmirror 成功"
+
+      - name: Verify edgeone CLI installed
+        run: edgeone -v
+
+      - name: Verify edgeone CLI >= 1.2.30
+        run: |
+          EO=$(edgeone -v 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          echo "edgeone CLI version: $EO"
+          python3 -c "
+          import sys
+          v = '$EO'.split('.')
+          ok = int(v[0]) > 1 or (int(v[0]) == 1 and (int(v[1]) > 2 or (int(v[1]) == 2 and int(v[2]) >= 30)))
+          sys.exit(0 if ok else 1)
+          " || { echo "::error::edgeone CLI 版本 $EO 低于 1.2.30"; exit 1; }
+          echo "OK: edgeone CLI $EO >= 1.2.30"
