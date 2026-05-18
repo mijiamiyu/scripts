@@ -83,14 +83,9 @@ jobs:
           # 这里用本地 Get-Content -Raw | iex 等价模拟
           Get-Content .\setup-edgeone-env.ps1 -Raw -Encoding UTF8 | Invoke-Expression
 
-      - name: Verify in fresh PowerShell session (模拟新开窗口)
+      - name: Verify in fresh PowerShell session
         shell: powershell
         run: |
-          # 重读注册表 PATH(模拟新开 powershell 窗口拿到的 env)
-          $machinePath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
-          $userPath    = [Environment]::GetEnvironmentVariable("PATH", "User")
-          $env:PATH = "$machinePath;$userPath"
-
           Write-Host "=== node ==="
           node -v
 
@@ -98,26 +93,26 @@ jobs:
           $reg = (npm config get registry).Trim()
           Write-Host "npm registry = $reg"
           if ($reg -ne "https://registry.npmmirror.com" -and $reg -ne "https://registry.npmmirror.com/") {
-            Write-Host "::error::registry 未生效,期望 npmmirror,实际 $reg"
+            Write-Host "::error::registry not switched, expected npmmirror, got $reg"
             exit 1
           }
-          Write-Host "OK: registry 切到 npmmirror 成功"
+          Write-Host "OK registry"
 
           Write-Host "=== edgeone CLI ==="
           $eo = (edgeone -v 2>&1 | Out-String).Trim()
-          Write-Host "edgeone CLI raw output: $eo"
+          Write-Host "edgeone raw output: $eo"
           if ($eo -match '(\d+)\.(\d+)\.(\d+)') {
             $vm = [int]$Matches[1]; $vn = [int]$Matches[2]; $vp = [int]$Matches[3]
             $ver = "$vm.$vn.$vp"
             Write-Host "edgeone CLI version: $ver"
             $ok = ($vm -gt 1) -or ($vm -eq 1 -and ($vn -gt 2 -or ($vn -eq 2 -and $vp -ge 30)))
             if (-not $ok) {
-              Write-Host "::error::edgeone CLI 版本 $ver 低于 1.2.30"
+              Write-Host "::error::edgeone CLI $ver < 1.2.30"
               exit 1
             }
-            Write-Host "OK: edgeone CLI $ver >= 1.2.30"
+            Write-Host "OK edgeone $ver"
           } else {
-            Write-Host "::error::无法解析 edgeone CLI 版本号"
+            Write-Host "::error::cannot parse edgeone version"
             exit 1
           }
 

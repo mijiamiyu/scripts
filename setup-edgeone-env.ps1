@@ -220,13 +220,17 @@ try {
     return
 }
 
-# Step 4/4:验证 edgeone CLI 版本(启新 powershell 进程,模拟重开窗口拿到的 PATH)
+# Step 4/4:验证 edgeone CLI 版本
+# 关键:从注册表重读 PATH(npm install -g 把 prefix 写到注册表 User PATH,跟"新开窗口"等价)
 Write-Step "4/4  验证 edgeone CLI 版本"
+
+$machinePath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+$userPath    = [Environment]::GetEnvironmentVariable("PATH", "User")
+$env:PATH    = "$machinePath;$userPath"
 
 $eoVer = ""
 try {
-    # 用 cmd /c 启新 powershell 子进程,它读注册表 PATH = 跟用户新开窗口等价
-    $eoVer = (cmd /c "powershell -NoProfile -Command ""(edgeone -v 2>`$null)""" 2>$null | Out-String).Trim()
+    $eoVer = (& edgeone -v 2>$null | Out-String).Trim()
 } catch {}
 
 if ($eoVer -match "(\d+)\.(\d+)\.(\d+)") {
