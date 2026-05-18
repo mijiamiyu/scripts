@@ -76,9 +76,12 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Run setup-edgeone-env.ps1
+      - name: Run setup-edgeone-env.ps1 (模拟 irm | iex 学员用法)
         shell: powershell
-        run: powershell -ExecutionPolicy Bypass -File .\setup-edgeone-env.ps1
+        run: |
+          # 学员实际用法: irm <url> | iex (PS 5.1, 无 BOM, UTF-8)
+          # 这里用本地 Get-Content -Raw | iex 等价模拟
+          Get-Content .\setup-edgeone-env.ps1 -Raw -Encoding UTF8 | Invoke-Expression
 
       - name: Verify in fresh PowerShell session (模拟新开窗口)
         shell: powershell

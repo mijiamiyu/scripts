@@ -1,4 +1,4 @@
-﻿# EdgeOne Pages 培训环境一键装(Windows)
+# EdgeOne Pages 培训环境一键装(Windows)
 # 装 Node.js LTS + 全局切 npm 国内镜像源 + 装 edgeone CLI
 
 # ── Process Scope Bypass(防 ExecutionPolicy 拦截)──
