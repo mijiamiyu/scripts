@@ -232,12 +232,5 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}  EdgeOne Pages 培训环境装好${NC}"
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
-echo -e "${CYAN}  下一步:${NC}"
-echo "    1. 重开终端(让 PATH 生效)"
-echo "    2. 打开 WorkBuddy"
-echo "    3. 跟它说: 帮我做个餐厅官网,然后部署到 EdgeOne Pages"
+echo -e "${GREEN}  环境配置完成${NC}"
 echo ""

@@ -220,31 +220,28 @@ try {
     return
 }
 
-# Step 4/4:验证 edgeone CLI 版本
+# Step 4/4:验证 edgeone CLI 版本(启新 powershell 进程,模拟重开窗口拿到的 PATH)
 Write-Step "4/4  验证 edgeone CLI 版本"
 
-Refresh-PathEnv
+$eoVer = ""
 try {
-    $eoVer = (& edgeone -v 2>$null).Trim()
-    if ($eoVer -match "(\d+)\.(\d+)\.(\d+)") {
-        $vmajor = [int]$Matches[1]
-        $vminor = [int]$Matches[2]
-        $vpatch = [int]$Matches[3]
-        if ($vmajor -gt 1 -or ($vmajor -eq 1 -and $vminor -gt 2) -or ($vmajor -eq 1 -and $vminor -eq 2 -and $vpatch -ge 30)) {
-            Write-Ok "edgeone CLI: $eoVer (>= 1.2.30 符合官方 skill 要求)"
-        } else {
-            Write-Warn "edgeone CLI: $eoVer (低于 1.2.30,可能要重装)"
-        }
+    # 用 cmd /c 启新 powershell 子进程,它读注册表 PATH = 跟用户新开窗口等价
+    $eoVer = (cmd /c "powershell -NoProfile -Command ""(edgeone -v 2>`$null)""" 2>$null | Out-String).Trim()
+} catch {}
+
+if ($eoVer -match "(\d+)\.(\d+)\.(\d+)") {
+    $vmajor = [int]$Matches[1]
+    $vminor = [int]$Matches[2]
+    $vpatch = [int]$Matches[3]
+    if ($vmajor -gt 1 -or ($vmajor -eq 1 -and $vminor -gt 2) -or ($vmajor -eq 1 -and $vminor -eq 2 -and $vpatch -ge 30)) {
+        Write-Ok "edgeone CLI: $eoVer"
     } else {
-        Write-Warn "edgeone CLI 已装但版本号格式异常: $eoVer"
+        Write-Warn "edgeone CLI: $eoVer (低于 1.2.30,建议重装)"
     }
-} catch {
-    Write-Warn "edgeone 命令未找到,可能要重开终端再试"
+} else {
+    Write-Warn "edgeone 命令未找到,重开终端再试"
 }
 
-# 完成
 Write-Host ""
-Write-Host "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
-Write-Host "  EdgeOne Pages 培训环境装好" -ForegroundColor Green
-Write-Host "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
+Write-Host "  环境配置完成" -ForegroundColor Green
 Write-Host ""
